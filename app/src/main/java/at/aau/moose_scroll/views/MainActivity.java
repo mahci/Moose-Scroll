@@ -19,16 +19,19 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
+import at.aau.moose_scroll.controller.Actioner;
 import at.aau.moose_scroll.controller.AdminManager;
 
 public class MainActivity extends AppCompatActivity {
 
     final String cName = "MainActivity";
-    // --------------------------------------------------------------
+    // -------------------------------------------------------------------------------
 
     boolean isInitialized = false; // has it gone through the init procedure?
     static boolean isAdmin = false; // is the app admin?
     static final int OVERLAY_PERMISSION_CODE = 2; // code for overlay permission intent
+
+    // -------------------------------------------------------------------------------
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -131,6 +134,7 @@ public class MainActivity extends AppCompatActivity {
         @SuppressLint("ClickableViewAccessibility")
         @Override
         public boolean onTouchEvent(MotionEvent event) {
+            Actioner.get().act(event, 0);
             return super.onTouchEvent(event);
         }
     }
