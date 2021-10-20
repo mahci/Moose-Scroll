@@ -21,10 +21,11 @@ import android.view.WindowManager;
 
 import at.aau.moose_scroll.controller.Actioner;
 import at.aau.moose_scroll.controller.AdminManager;
+import at.aau.moose_scroll.controller.Networker;
 
 public class MainActivity extends AppCompatActivity {
 
-    final String cName = "MainActivity";
+    final String cName = "MainActivity--";
     // -------------------------------------------------------------------------------
 
     boolean isInitialized = false; // has it gone through the init procedure?
@@ -40,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
 
         // if not initialized, initialize!
         if (!isInitialized) init();
+
+        Networker.get().connect();
     }
 
     /**
