@@ -12,6 +12,7 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.os.Vibrator;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -40,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         // if not initialized, initialize!
-        if (!isInitialized) init();
+        init();
 
         Networker.get().connect();
     }
@@ -70,8 +71,15 @@ public class MainActivity extends AppCompatActivity {
         } else {
             drawTouchViewGroup();
         }
+
+        // Set the vibrator in other classes
+        Networker.get().setVibrator((Vibrator) getSystemService(VIBRATOR_SERVICE));
     }
 
+    /**
+     * Set isAdmin from outside the activity
+     * @param isa is admin?
+     */
     public static void setIsAdim(boolean isa) {
         isAdmin = isa;
     }
