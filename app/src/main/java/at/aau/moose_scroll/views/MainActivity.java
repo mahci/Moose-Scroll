@@ -1,6 +1,7 @@
 package at.aau.moose_scroll.views;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
@@ -10,29 +11,60 @@ import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.os.Handler;
+import android.os.Message;
 import android.os.Vibrator;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import at.aau.moose_scroll.controller.Actioner;
 import at.aau.moose_scroll.controller.AdminManager;
 import at.aau.moose_scroll.controller.Networker;
+import at.aau.moose_scroll.data.Consts.*;
 
 public class MainActivity extends AppCompatActivity {
 
-    final String cName = "MainActivity--";
+    final static String TAG = "MainActivity--";
     // -------------------------------------------------------------------------------
 
-    boolean isInitialized = false; // has it gone through the init procedure?
     static boolean isAdmin = false; // is the app admin?
     static final int OVERLAY_PERMISSION_CODE = 2; // code for overlay permission intent
 
+    private ExecutorService executorService; // for running threads
+    private AlertDialog.Builder dialogBuilder; // for creating dialogs
+    private AlertDialog dialog; // dialog for everyting!
+    // -------------------------------------------------------------------------------
+
+    // Main Handler
+    @SuppressLint("HandlerLeak")
+    private Handler mainHandler = new Handler() {
+        @Override
+        public void handleMessage(@NonNull Message mssg) {
+            Log.d(TAG, "handleMessage: " + mssg.what);
+            if (mssg.what == INTS.CLOSE_DLG) {
+                if (dialog != null) dialog.dismiss();
+                drawUI();
+            }
+
+//            if (mssg.what == INTS.SHOW_DLG) {
+//                showDialog("Connecting to desktop...");
+//            }
+        }
+    };
     // -------------------------------------------------------------------------------
 
     @Override
@@ -40,18 +72,49 @@ public class MainActivity extends AppCompatActivity {
         requestWindowFeature(Window.FEATURE_NO_TITLE); // For removing the status bar
         super.onCreate(savedInstanceState);
 
-        // if not initialized, initialize!
-        init();
+        // Initializations
+        executorService = Executors.newSingleThreadExecutor();
+        dialogBuilder = new AlertDialog.Builder(this);
+        Networker.get().setVibrator((Vibrator) getSystemService(VIBRATOR_SERVICE));
+        checkAdmin();
+        Networker.get().setMainHandler(mainHandler);
 
+        showDialog("Connecting to desktop...");
         Networker.get().connect();
+
     }
 
     /**
-     * Initialize
+     * Show an AlertDialog
+     * @param mssg Message to show
      */
-    private void init() {
+    private void showDialog(String mssg) {
+        dialog = dialogBuilder.create();
+        dialog.setMessage(mssg);
+        dialog.setCancelable(false);
+        dialog.show();
+    }
 
-        //-- get the admin permission [for removing the status bar]
+    /**
+     * Draw the main UI
+     */
+    private void drawUI() {
+        // Get the overlay permission (possible only with admin)
+        if (!Settings.canDrawOverlays(this)) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            startActivityForResult(intent, OVERLAY_PERMISSION_CODE);
+        } else {
+            drawTouchViewGroup();
+        }
+    }
+
+    /**
+     * Make sure the app has adimin permissions
+     */
+    private void checkAdmin() {
+
+        //-- Get the admin permission [for removing the status bar]
         DevicePolicyManager mDPM = (DevicePolicyManager)
                 getSystemService(Context.DEVICE_POLICY_SERVICE);
         ComponentName adminManager = new ComponentName(this, AdminManager.class);
@@ -63,17 +126,6 @@ public class MainActivity extends AppCompatActivity {
             startActivityForResult(intent, 1);
         }
 
-        // Get the overlay permission (possible only with admin)
-        if (!Settings.canDrawOverlays(this)) {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + getPackageName()));
-            startActivityForResult(intent, OVERLAY_PERMISSION_CODE);
-        } else {
-            drawTouchViewGroup();
-        }
-
-        // Set the vibrator in other classes
-        Networker.get().setVibrator((Vibrator) getSystemService(VIBRATOR_SERVICE));
     }
 
     /**

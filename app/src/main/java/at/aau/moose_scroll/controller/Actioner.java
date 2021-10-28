@@ -2,12 +2,12 @@ package at.aau.moose_scroll.controller;
 
 import static android.view.MotionEvent.INVALID_POINTER_ID;
 
-import android.graphics.PointF;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.view.MotionEvent.PointerCoords;
 
-import io.reactivex.rxjava3.subjects.PublishSubject;
+import static at.aau.moose_scroll.data.Consts.STRINGS.*;
+
+import at.aau.moose_scroll.data.Memo;
 
 
 public class Actioner {
@@ -16,7 +16,7 @@ public class Actioner {
     private static Actioner instance; // Singelton instance
 
     // Mode of scrolling
-    private String mode = "Drag";
+    private String mode = DRAG;
 
     // To find the right finger pointer
     private final int MAX_N_POINTERS = 5; // 5 diiff. touch pointers supported on most devices
@@ -46,6 +46,7 @@ public class Actioner {
      * @param mid Unique id for the event
      */
     public void act(MotionEvent mevent, int mid) {
+        String TAG = cName + "act";
         int leftIndex, actionIndex;
         float leftDY;
 
@@ -78,8 +79,9 @@ public class Actioner {
 
                     leftIndex = mevent.findPointerIndex(leftPointerID);
                     if (leftIndex != -1) { // Valid id found
-                        if (mode.equals("Drag")) drag(mevent, leftPointerID);
-                        if (mode.equals("RB")) rateBased(mevent, leftPointerID);
+                        Log.d(TAG, "ACTION_MOVE");
+                        if (mode.equals(DRAG)) drag(mevent, leftPointerID);
+                        if (mode.equals(RATE_BASED)) rateBased(mevent, leftPointerID);
                     }
                 }
 
@@ -100,6 +102,9 @@ public class Actioner {
             lastY = mevent.getY();
 
             double dragDelta = dY * GAIN * (-1); // -1 because of direction
+
+            // Send the message via the Networker
+            Networker.get().sendMemo(new Memo(DRAG, String.valueOf(dragDelta)));
 
             Log.d(TAG, "dragDelta = " + dragDelta);
             // TODO: send the dragDelta to the Server
