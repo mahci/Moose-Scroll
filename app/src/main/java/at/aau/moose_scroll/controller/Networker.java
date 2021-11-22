@@ -1,5 +1,8 @@
 package at.aau.moose_scroll.controller;
 
+import static at.aau.moose_scroll.data.Consts.STRINGS.*;
+import static at.aau.moose_scroll.data.Consts.INTS.*;
+
 import android.os.Handler;
 import android.os.Message;
 import android.os.Vibrator;
@@ -16,10 +19,11 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import at.aau.moose_scroll.data.Consts;
 import at.aau.moose_scroll.data.Memo;
 import io.reactivex.rxjava3.core.Observable;
 
-import at.aau.moose_scroll.data.Consts.*;
+import at.aau.moose_scroll.data.Consts.STRINGS.*;
 
 @SuppressWarnings("ALL")
 public class Networker {
@@ -57,7 +61,7 @@ public class Networker {
                     vibrate(SUCCESS_VIBRATE_DUR);
 
                     // Send a message to MainActivity (for dismissing the dialog)
-                    sendToMain(INTS.CLOSE_DLG);
+                    sendToMain(CLOSE_DLG);
 
                     // Create buffers
                     inBR = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -65,7 +69,7 @@ public class Networker {
                             new OutputStreamWriter(socket.getOutputStream())),true);
 
                     // Send intro
-                    sendMemo(new Memo(STRINGS.INTRO, STRINGS.MOOSE));
+                    sendMemo(new Memo(INTRO, INTRO, MOOSE));
 
                     // Start receiving
                     executor.execute(new InRunnable());

@@ -2,32 +2,38 @@ package at.aau.moose_scroll.controller;
 
 import static android.view.MotionEvent.INVALID_POINTER_ID;
 
-import android.util.Log;
+import android.graphics.PointF;
 import android.view.MotionEvent;
 
 import static at.aau.moose_scroll.data.Consts.STRINGS.*;
 
+import at.aau.moose_scroll.data.Consts.*;
 import at.aau.moose_scroll.data.Memo;
+import at.aau.moose_scroll.tools.Logs;
 
 
 public class Actioner {
-    private final String cName = "Actioner--";
+    private final String NAME = "Actioner--";
+    // -------------------------------------------------------------------------------
 
     private static Actioner instance; // Singelton instance
 
     // Mode of scrolling
-    private String mode = DRAG;
+    private TECH technique = TECH.DRAG;
+    private MODE mode = MODE.HORIZONTAL;
 
-    // To find the right finger pointer
-    private final int MAX_N_POINTERS = 5; // 5 diiff. touch pointers supported on most devices
-
-    private int leftPointerID = INVALID_POINTER_ID; // Id of the left finger
-    private double lastY;
+    private int leftmostId = INVALID_POINTER_ID; // Id of the left finger
+    private PointF lastPoint;
     private int nTouchPoints; // = touchPointCounter in Demi's code
 
-    // For Drag
-    private final int SENSITIVITY = 2; // Count every n ACTION_MOVEs
-    private final int GAIN = 1; // gainFactor in Demi's code
+    // Config
+    private final int SENSITIVITY_DRAG = 5; // Count every n ACTION_MOVEs (drag)
+    private final int SENSITIVITY_RB = 1; // Count every n ACTION_MOVEs (rate-based)
+
+    private final int DENOM_RB = 10; // Denominator in RB's speed formula
+
+    private final double GAIN_DRAG = 1; // Gain factor for drag
+    private final double GAIN_RB = 1; // Gain factor for rate-based
 
     // -------------------------------------------------------------------------------
 
@@ -41,52 +47,86 @@ public class Actioner {
     }
 
     /**
+     * Set the mode of scrolling
+     * @param m Mode
+     */
+    public void setMode(MODE m) {
+        mode = m;
+    }
+
+    /**
      * Perform the action
      * @param mevent MotionEvent to process and perform
      * @param mid Unique id for the event
      */
     public void act(MotionEvent mevent, int mid) {
-        String TAG = cName + "act";
-        int leftIndex, actionIndex;
-        float leftDY;
+        String TAG = NAME + "act";
+        int leftmostIndex = INVALID_POINTER_ID;
 
         switch (mevent.getActionMasked()) {
 
                 // Only one finger on the screen
             case MotionEvent.ACTION_DOWN:
-                leftIndex = 0;
-                leftPointerID = mevent.getPointerId(leftIndex); // Save pointer id
-                lastY = mevent.getY();
+                updatePointers(mevent);
+
+                Logs.d(TAG, "DOWN ID= " + leftmostId + " | Index= " + leftmostIndex);
 
                 break;
 
                 // More fingers are added
             case MotionEvent.ACTION_POINTER_DOWN:
-                actionIndex = mevent.getActionIndex(); // Which pointer is down?
 
-                // If new finger is on the left
-                if (isLeftMost(mevent, actionIndex)) {
-                    leftPointerID =  mevent.getPointerId(actionIndex); // Set ID
-                    lastY = mevent.getY();
+                // If new finger is on the left, update
+                if (isLeftMost(mevent, mevent.getActionIndex())) {
+                    resetScroll();
+                    updatePointers(mevent);
                 }
 
-                // TODO: add logging
+                Logs.d(TAG, "PDOWN ID= " + leftmostId + " | Index= " + leftmostIndex);
 
             break;
 
+                // Moving the fingers on the screen
             case MotionEvent.ACTION_MOVE:
-                if (leftPointerID != INVALID_POINTER_ID) { // There is a leftmost finger on screen
-
-                    leftIndex = mevent.findPointerIndex(leftPointerID);
-                    if (leftIndex != -1) { // Valid id found
-                        Log.d(TAG, "ACTION_MOVE");
-                        if (mode.equals(DRAG)) drag(mevent, leftPointerID);
-                        if (mode.equals(RATE_BASED)) rateBased(mevent, leftPointerID);
-                    }
+                // actionIndex = mevent.getActionIndex(); // DOESN'T WORK FOR MOVE!!
+                leftmostIndex = findLeftMostIndex(mevent);
+                Logs.d(TAG, "MOVE ID= " + leftmostId + " | Index= " + leftmostIndex);
+                switch (technique) {
+                case DRAG: scrollDrag(mevent, leftmostIndex); break;
+                case RATE_BASED: scrollRateBased(mevent, leftmostIndex); break;
                 }
+
+            break;
+
+                // One finger is up
+        case MotionEvent.ACTION_POINTER_UP:
+
+            // If new finger is on the left, update
+            if (isLeftMost(mevent, mevent.getActionIndex())) {
+                resetScroll();
+                updatePointers(mevent);
+            }
+
+            Logs.d(TAG, "PUP ID= " + leftmostId + " | Index= " + leftmostIndex);
+
+            break;
+
+            // Last finger up
+        case MotionEvent.ACTION_UP:
+            resetScroll();
+
+            Logs.d(TAG, "UP ID= " + leftmostId + " | Index= " + leftmostIndex);
 
             break;
         }
+    }
+
+    /**
+     * Reset the scrolling
+     */
+    private void resetScroll() {
+        Networker.get().sendMemo(new Memo(SCROLL, RB, STOP));
+        nTouchPoints = 0;
     }
 
     /**
@@ -94,32 +134,99 @@ public class Actioner {
      * @param mevent MotionEvent to process and perform
      * @param mid Unique id for the event
      */
-    private void drag(MotionEvent mevent, int mid) {
-        String TAG = cName + "drag";
+    private void scrollDrag(MotionEvent mevent, int mid) {
+        String TAG = NAME + "drag";
 
-        if (nTouchPoints % SENSITIVITY == 0) {
-            double dY = mevent.getY() - lastY;
-            lastY = mevent.getY();
+        switch (mode) {
+        case VERTICAL:
+            if (nTouchPoints % SENSITIVITY_DRAG == 0) {
+                double dX = mevent.getX() - lastPoint.x;
+                double dY = mevent.getY() - lastPoint.y;
 
-            double dragDelta = dY * GAIN * (-1); // -1 because of direction
+                double scrollDetla = dY * GAIN_DRAG * (-1); // (-1) for the direction
 
-            // Send the message via the Networker
-            Networker.get().sendMemo(new Memo(DRAG, String.valueOf(dragDelta)));
+                // TODO: Put limit on dY
+                // Send the message via the Networker
+                Networker.get().sendMemo(new Memo(SCROLL, DRAG, String.valueOf(scrollDetla)));
 
-            Log.d(TAG, "dragDelta = " + dragDelta);
-            // TODO: send the dragDelta to the Server
+                // Update the touch point
+                lastPoint = new PointF(mevent.getX(), mevent.getY());
+            }
+
+            break;
+        case HORIZONTAL:
+            if (nTouchPoints % SENSITIVITY_DRAG == 0) {
+                double dX = mevent.getX() - lastPoint.x;
+                double dY = mevent.getY() - lastPoint.y;
+
+                double scrollDetla = dX * GAIN_DRAG * (-1); // (-1) for the direction
+
+                // TODO: Put limit on dY
+                // Send the message via the Networker
+                Networker.get().sendMemo(new Memo(SCROLL, DRAG, String.valueOf(scrollDetla)));
+
+                // Update the touch point
+                lastPoint = new PointF(mevent.getX(), mevent.getY());
+            }
+            break;
         }
+
         nTouchPoints++;
     }
 
     /**
      * Perform the Rate-based scroll technique
      * @param mevent MotionEvent to process and perform
-     * @param mid Unique id for the event
+     * @param lmIndex Index of the moving finger
      */
-    private void rateBased(MotionEvent mevent, int mid) {
+    private void scrollRateBased(MotionEvent mevent, int lmIndex) {
+        String TAG = NAME + "drag";
 
+        switch (mode) {
+        case VERTICAL:
+
+            if (nTouchPoints % SENSITIVITY_RB == 0) {
+                double dX = mevent.getX(lmIndex) - lastPoint.x;
+                double dY = mevent.getY(lmIndex) - lastPoint.y;
+                // [ATTENTION] lastPoint stays the same during the action!
+
+                // Calculate the scroll delta
+//                double absDelta = Math.pow(Math.abs(dX), GAIN_RB) / 1000; // Demi's
+                double absDelta = Math.pow(Math.abs(dY), GAIN_RB) / DENOM_RB; // My version
+                int direction = (int) (dY / Math.abs(dY)) * (-1); // For direction
+
+                double scrollDelta = absDelta * direction;
+
+                // Send the message via the Networker
+                Networker.get().sendMemo(new Memo(SCROLL, RB, String.valueOf(scrollDelta)));
+
+            }
+
+            break;
+        case HORIZONTAL:
+
+            if (nTouchPoints % SENSITIVITY_RB == 0) {
+                double dX = mevent.getX(lmIndex) - lastPoint.x;
+                double dY = mevent.getY(lmIndex) - lastPoint.y;
+                // [ATTENTION] lastPoint stays the same during the action!
+
+                // Calculate the scroll delta
+//                double absDelta = Math.pow(Math.abs(dX), GAIN_RB) / 1000; // Demi's
+                double absDelta = Math.pow(Math.abs(dX), GAIN_RB) / DENOM_RB; // My version
+                int direction = (int) (dX / Math.abs(dX)) * (-1); // For direction
+
+                double scrollDelta = absDelta * direction;
+
+                // Send the message via the Networker
+                Networker.get().sendMemo(new Memo(SCROLL, RB, String.valueOf(scrollDelta)));
+
+            }
+            break;
+        }
+
+        nTouchPoints++;
     }
+
 
     /**
      * Check if a pointer is leftmost
@@ -128,12 +235,50 @@ public class Actioner {
      * @return boolean
      */
     public boolean isLeftMost(MotionEvent me, int pointerIndex) {
-        boolean result = true;
+        return findLeftMostIndex(me) == pointerIndex;
+    }
+
+    /**
+     * Find the index of leftmost pointer
+     * @param me MotionEvent
+     * @return Index of the leftmost pointer
+     */
+    public int findLeftMostIndex(MotionEvent me) {
+        int nPointers = me.getPointerCount();
+        if (nPointers == 0) return -1;
+        if (nPointers == 1) return  0;
+
+        // > 1 pointers on the screen
+        int lmIndex = 0;
         for (int pix = 0; pix < me.getPointerCount(); pix++) {
-            if (me.getX(pix) < me.getX(pointerIndex)) result = false;
+            if (me.getX(pix) < me.getX(lmIndex)) lmIndex = pix;
         }
 
-        return result;
+        return lmIndex;
+    }
+
+    /**
+     * Find the id of the leftmost pointer
+     * @param me MotionEvent
+     * @return Id of the leftmost pointer
+     */
+    private int findLeftMostId(MotionEvent me) {
+        int lmIndex = findLeftMostIndex(me);
+        if (lmIndex == -1) return INVALID_POINTER_ID;
+        else return me.getPointerId(lmIndex);
+    }
+
+    /**
+     * Update the leftmost properties and lastPoint
+     */
+    private void updatePointers(MotionEvent me) {
+        String TAG = NAME + "updatePointers";
+
+        int leftmostIndex = findLeftMostIndex(me);
+        leftmostId = me.getPointerId(leftmostIndex);
+        lastPoint = new PointF(me.getX(leftmostIndex), me.getY(leftmostIndex));
+
+        Logs.d(TAG, "lmId= " + leftmostIndex + " | " + leftmostIndex);
     }
 
     /**
