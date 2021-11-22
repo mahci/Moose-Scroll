@@ -2,10 +2,10 @@ package at.aau.moose_scroll.controller;
 
 import static android.view.MotionEvent.INVALID_POINTER_ID;
 
+import static at.aau.moose_scroll.data.Consts.*;
+
 import android.graphics.PointF;
 import android.view.MotionEvent;
-
-import static at.aau.moose_scroll.data.Consts.STRINGS.*;
 
 import at.aau.moose_scroll.data.Consts.*;
 import at.aau.moose_scroll.data.Memo;
@@ -20,15 +20,16 @@ public class Actioner {
 
     // Mode of scrolling
     private TECH technique = TECH.DRAG;
-    private MODE mode = MODE.HORIZONTAL;
+    private MODE mode = MODE.TWOD;
 
+    // Algorithm parameters
     private int leftmostId = INVALID_POINTER_ID; // Id of the left finger
     private PointF lastPoint;
     private int nTouchPoints; // = touchPointCounter in Demi's code
 
     // Config
-    private final int SENSITIVITY_DRAG = 5; // Count every n ACTION_MOVEs (drag)
-    private final int SENSITIVITY_RB = 1; // Count every n ACTION_MOVEs (rate-based)
+    private final int DRAG_SENSITIVITY = 5; // Count every n ACTION_MOVEs (drag)
+    private final int RB_SENSITIVITY = 1; // Count every n ACTION_MOVEs (rate-based)
 
     private final int DENOM_RB = 10; // Denominator in RB's speed formula
 
@@ -97,8 +98,8 @@ public class Actioner {
                 }
 
             break;
+        // One finger is up
 
-                // One finger is up
         case MotionEvent.ACTION_POINTER_UP:
 
             // If new finger is on the left, update
@@ -125,7 +126,8 @@ public class Actioner {
      * Reset the scrolling
      */
     private void resetScroll() {
-        Networker.get().sendMemo(new Memo(SCROLL, RB, STOP));
+        // Mode doens't matter here
+        Networker.get().sendMemo(new Memo(STRINGS.SCROLL, STRINGS.RB, 0, 0));
         nTouchPoints = 0;
     }
 
@@ -139,7 +141,7 @@ public class Actioner {
 
         switch (mode) {
         case VERTICAL:
-            if (nTouchPoints % SENSITIVITY_DRAG == 0) {
+            if (nTouchPoints % DRAG_SENSITIVITY == 0) {
                 double dX = mevent.getX() - lastPoint.x;
                 double dY = mevent.getY() - lastPoint.y;
 
@@ -147,7 +149,7 @@ public class Actioner {
 
                 // TODO: Put limit on dY
                 // Send the message via the Networker
-                Networker.get().sendMemo(new Memo(SCROLL, DRAG, String.valueOf(scrollDetla)));
+//                Networker.get().sendMemo(new Memo(SCROLL, DRAG, String.valueOf(scrollDetla)));
 
                 // Update the touch point
                 lastPoint = new PointF(mevent.getX(), mevent.getY());
@@ -155,7 +157,7 @@ public class Actioner {
 
             break;
         case HORIZONTAL:
-            if (nTouchPoints % SENSITIVITY_DRAG == 0) {
+            if (nTouchPoints % DRAG_SENSITIVITY == 0) {
                 double dX = mevent.getX() - lastPoint.x;
                 double dY = mevent.getY() - lastPoint.y;
 
@@ -163,10 +165,25 @@ public class Actioner {
 
                 // TODO: Put limit on dY
                 // Send the message via the Networker
-                Networker.get().sendMemo(new Memo(SCROLL, DRAG, String.valueOf(scrollDetla)));
+//                Networker.get().sendMemo(new Memo(SCROLL, DRAG, String.valueOf(scrollDetla)));
 
                 // Update the touch point
                 lastPoint = new PointF(mevent.getX(), mevent.getY());
+            }
+            break;
+
+        case TWOD:
+
+            if (nTouchPoints % DRAG_SENSITIVITY == 0) {
+                double dX = mevent.getX() - lastPoint.x;
+                double dY = mevent.getY() - lastPoint.y;
+
+                double scrollDX = dX * GAIN_DRAG;
+                double scrollDY = dY * GAIN_DRAG;
+
+                // Send the movement to server
+                Memo tdMemo = new Memo(STRINGS.SCROLL, STRINGS.DRAG, scrollDX, scrollDY);
+                Networker.get().sendMemo(tdMemo);
             }
             break;
         }
@@ -185,7 +202,7 @@ public class Actioner {
         switch (mode) {
         case VERTICAL:
 
-            if (nTouchPoints % SENSITIVITY_RB == 0) {
+            if (nTouchPoints % RB_SENSITIVITY == 0) {
                 double dX = mevent.getX(lmIndex) - lastPoint.x;
                 double dY = mevent.getY(lmIndex) - lastPoint.y;
                 // [ATTENTION] lastPoint stays the same during the action!
@@ -198,14 +215,14 @@ public class Actioner {
                 double scrollDelta = absDelta * direction;
 
                 // Send the message via the Networker
-                Networker.get().sendMemo(new Memo(SCROLL, RB, String.valueOf(scrollDelta)));
+//                Networker.get().sendMemo(new Memo(SCROLL, RB, String.valueOf(scrollDelta)));
 
             }
 
             break;
         case HORIZONTAL:
 
-            if (nTouchPoints % SENSITIVITY_RB == 0) {
+            if (nTouchPoints % RB_SENSITIVITY == 0) {
                 double dX = mevent.getX(lmIndex) - lastPoint.x;
                 double dY = mevent.getY(lmIndex) - lastPoint.y;
                 // [ATTENTION] lastPoint stays the same during the action!
@@ -218,7 +235,7 @@ public class Actioner {
                 double scrollDelta = absDelta * direction;
 
                 // Send the message via the Networker
-                Networker.get().sendMemo(new Memo(SCROLL, RB, String.valueOf(scrollDelta)));
+//                Networker.get().sendMemo(new Memo(SCROLL, RB, String.valueOf(scrollDelta)));
 
             }
             break;

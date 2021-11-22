@@ -18,7 +18,7 @@ public class Consts {
     }
 
     public enum MODE {
-        VERTICAL, HORIZONTAL
+        VERTICAL, HORIZONTAL, TWOD
     }
 
     public enum TECH {

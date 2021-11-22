@@ -29,7 +29,8 @@ import at.aau.moose_scroll.data.Consts.STRINGS.*;
 public class Networker {
     private String cName = "Networker--";
     // -------------------------------------------------------------------------------
-    private final String DESKTOP_IP = "192.168.2.1";
+//    private final String DESKTOP_IP = "192.168.2.1";
+    private final String DESKTOP_IP = "192.168.178.34";
     private final int DESKTOP_PORT = 8000;
     private final long SUCCESS_VIBRATE_DUR = 500; // ms
     private final long CONN_THREAD_SLEEP_DUR = 2 * 1000; // ms
@@ -69,7 +70,7 @@ public class Networker {
                             new OutputStreamWriter(socket.getOutputStream())),true);
 
                     // Send intro
-                    sendMemo(new Memo(INTRO, INTRO, MOOSE));
+                    sendMemo(new Memo(INTRO, INTRO, MOOSE, ""));
 
                     // Start receiving
                     executor.execute(new InRunnable());
