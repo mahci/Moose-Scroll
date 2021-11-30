@@ -28,13 +28,15 @@ public class Actioner {
     private int nTouchPoints; // = touchPointCounter in Demi's code
 
     // Config
-    private final int DRAG_SENSITIVITY = 5; // Count every n ACTION_MOVEs (drag)
+    private final int DRAG_SENSITIVITY = 2; // Count every n ACTION_MOVEs (drag)
     private final int RB_SENSITIVITY = 1; // Count every n ACTION_MOVEs (rate-based)
 
     private final int DENOM_RB = 10; // Denominator in RB's speed formula
 
     private final double GAIN_DRAG = 1; // Gain factor for drag
     private final double GAIN_RB = 1; // Gain factor for rate-based
+
+    private final int PPI = 312; // For calculating movement in mm
 
     // -------------------------------------------------------------------------------
 
@@ -70,7 +72,7 @@ public class Actioner {
             case MotionEvent.ACTION_DOWN:
                 updatePointers(mevent);
 
-                Logs.d(TAG, "DOWN ID= " + leftmostId + " | Index= " + leftmostIndex);
+                Logs.d(TAG, "DOWN ID|Ind ", leftmostId, leftmostIndex);
 
                 break;
 
@@ -83,7 +85,7 @@ public class Actioner {
                     updatePointers(mevent);
                 }
 
-                Logs.d(TAG, "PDOWN ID= " + leftmostId + " | Index= " + leftmostIndex);
+                Logs.d(TAG, "PDWON ID|Ind ", leftmostId, leftmostIndex);
 
             break;
 
@@ -91,7 +93,8 @@ public class Actioner {
             case MotionEvent.ACTION_MOVE:
                 // actionIndex = mevent.getActionIndex(); // DOESN'T WORK FOR MOVE!!
                 leftmostIndex = findLeftMostIndex(mevent);
-                Logs.d(TAG, "MOVE ID= " + leftmostId + " | Index= " + leftmostIndex);
+                Logs.d(TAG, "MOVE ID|Ind ", leftmostId, leftmostIndex);
+
                 switch (technique) {
                 case DRAG: scrollDrag(mevent, leftmostIndex); break;
                 case RATE_BASED: scrollRateBased(mevent, leftmostIndex); break;
@@ -104,19 +107,20 @@ public class Actioner {
 
             // If new finger is on the left, update
             if (isLeftMost(mevent, mevent.getActionIndex())) {
-                resetScroll();
+//                resetScroll();
+                nTouchPoints = 0;
                 updatePointers(mevent);
             }
 
-            Logs.d(TAG, "PUP ID= " + leftmostId + " | Index= " + leftmostIndex);
+            Logs.d(TAG, "PUP ID|Ind ", leftmostId, leftmostIndex);
 
             break;
 
             // Last finger up
         case MotionEvent.ACTION_UP:
-            resetScroll();
-
-            Logs.d(TAG, "UP ID= " + leftmostId + " | Index= " + leftmostIndex);
+//            resetScroll();
+            nTouchPoints = 0;
+            Logs.d(TAG, "UP ID|Ind", leftmostId, leftmostIndex);
 
             break;
         }
@@ -178,11 +182,11 @@ public class Actioner {
                 double dX = mevent.getX() - lastPoint.x;
                 double dY = mevent.getY() - lastPoint.y;
 
-                double scrollDX = dX * GAIN_DRAG;
-                double scrollDY = dY * GAIN_DRAG;
+                double scrollDXMM = px2mm(dX * GAIN_DRAG);
+                double scrollDYMM = px2mm(dY * GAIN_DRAG);
 
-                // Send the movement to server
-                Memo tdMemo = new Memo(STRINGS.SCROLL, STRINGS.DRAG, scrollDX, scrollDY);
+                // Send the movement to server (y/vertical first value)
+                Memo tdMemo = new Memo(STRINGS.SCROLL, STRINGS.DRAG, scrollDYMM, scrollDXMM);
                 Networker.get().sendMemo(tdMemo);
             }
             break;
@@ -308,6 +312,10 @@ public class Actioner {
         MotionEvent.PointerCoords result = new MotionEvent.PointerCoords();
         me.getPointerCoords(pointerIndex, result);
         return result;
+    }
+
+    private double px2mm(double px) {
+        return (px / PPI) * 25.4;
     }
 
 }

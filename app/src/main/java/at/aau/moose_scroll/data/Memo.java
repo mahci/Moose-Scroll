@@ -4,40 +4,42 @@ import static at.aau.moose_scroll.data.Consts.STRINGS.*;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 public class Memo {
     private static final String NAME = "Memo/";
 
     private String action;
     private String mode;
-    private String valueX;
-    private String valueY;
+    private String value1;
+    private String value2;
 
     /**
      * Constructor
      * @param act Action Mostly "SCROLL"
      * @param md Mode DRAG or RT
-     * @param vlX String value Movement along X
-     * @param vlY String value Movement along Y
+     * @param v1 String value1
+     * @param v2 String value2
      */
-    public Memo(String act, String md, String vlX, String vlY) {
+    public Memo(String act, String md, String v1, String v2) {
         action = act;
         mode = md;
-        valueX = vlX;
-        valueY = vlY;
+        value1 = v1;
+        value1 = v2;
     }
 
     /**
      * Constructor
      * @param act Action Mostly "SCROLL"
      * @param md Mode DRAG or RT
-     * @param vlX Double value Movement along X
-     * @param vlY Double value Movement along Y
+     * @param v1 Double value Movement along X
+     * @param v2 Double value Movement along Y
      */
-    public Memo(String act, String md, double vlX, double vlY) {
+    public Memo(String act, String md, double v1, double v2) {
         action = act;
         mode = md;
-        valueX = String.valueOf(vlX);
-        valueY = String.valueOf(vlY);
+        value1 = String.valueOf(v1);
+        value2 = String.valueOf(v2);
     }
 
     /**
@@ -46,8 +48,8 @@ public class Memo {
     public Memo() {
         action = "";
         mode = "";
-        valueX = "";
-        valueY = "";
+        value1 = "";
+        value2 = "";
     }
 
     /**
@@ -70,9 +72,9 @@ public class Memo {
      * Convert and return the X value
      * @return Int X value
      */
-    public int getValueXInt() {
+    public int getValue1Int() {
         try {
-            return (int) Double.parseDouble(valueX);
+            return (int) Double.parseDouble(value1);
         } catch (NumberFormatException e) {
             return 0;
         }
@@ -83,9 +85,9 @@ public class Memo {
      * Convert and return the value
      * @return Int Y Value
      */
-    public int getValueYInt() {
+    public int getValue2Int() {
         try {
-            return (int) Double.parseDouble(valueX);
+            return (int) Double.parseDouble(value2);
         } catch (NumberFormatException e) {
             return 0;
         }
@@ -106,8 +108,8 @@ public class Memo {
             if (parts.length == 4) {
                 result.action = parts[0];
                 result.mode = parts[1];
-                result.valueX = parts[2];
-                result.valueY = parts[3];
+                result.value1 = parts[2];
+                result.value2 = parts[3];
             } else {
                 Log.d(TAG, "Problem in parsing the memo!");
             }
@@ -120,8 +122,9 @@ public class Memo {
      * Get the String equivaluent
      * @return String
      */
+    @NonNull
     @Override
     public String toString() {
-        return action + SP + mode + SP + valueX + SP + valueY;
+        return action + SP + mode + SP + value1 + SP + value2;
     }
 }

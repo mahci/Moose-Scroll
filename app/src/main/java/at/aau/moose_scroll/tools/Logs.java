@@ -11,6 +11,26 @@ public class Logs {
         Log.d(tag, mssg);
     }
 
+    public static void d(String tag, String name, int... params) {
+        if (params.length > 0) {
+            StringBuilder sb = new StringBuilder().append(">>").append(name).append(": ");
+            for(int p : params) {
+                sb.append(p).append(" | ");
+            }
+            Log.d(tag, sb.toString());
+        }
+    }
+
+    public static void d(String tag, String name, double... params) {
+        if (params.length > 0) {
+            StringBuilder sb = new StringBuilder().append(">>").append(name).append(": ");
+            for(double p : params) {
+                sb.append(p).append(" | ");
+            }
+            Log.d(tag, sb.toString());
+        }
+    }
+
     public static void d(String tag, int mssg) {
         Logs.d(tag, String.valueOf(mssg));
     }
