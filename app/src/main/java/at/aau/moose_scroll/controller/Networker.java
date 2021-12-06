@@ -128,13 +128,13 @@ public class Networker {
                     if (mssg != null) { // Connection is lost
                         Log.d(TAG, "Message: " + mssg);
                     } else {
-                        connect(); // Reconnect
+                        resetConnection();
                         return;
                     }
                 } catch (IOException e) {
-                    Log.d(TAG, "Problem in reading from server");
-                    connect();
+                    Log.d(TAG, "Problem in reading from server. Reseting connection...");
                     e.printStackTrace();
+                    resetConnection();
                 }
             }
         }
@@ -166,6 +166,13 @@ public class Networker {
         String TAG = cName + "connect";
 
         executor.execute(new ConnectRunnable());
+    }
+
+    public void resetConnection() {
+        socket = null;
+        outPW = null;
+        inBR = null;
+        connect();
     }
 
     /**

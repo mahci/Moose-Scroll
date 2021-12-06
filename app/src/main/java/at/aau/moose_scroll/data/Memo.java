@@ -25,7 +25,7 @@ public class Memo {
         action = act;
         mode = md;
         value1 = v1;
-        value1 = v2;
+        value2 = v2;
     }
 
     /**

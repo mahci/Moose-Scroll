@@ -5,6 +5,7 @@ public class Consts {
     public static class STRINGS {
         public static final String INTRO = "INTRO";
         public static final String MOOSE = "MOOSE";
+        public static final String MODE = "MODE";
         public static final String SCROLL = "SCROLL";
         public static final String DRAG = "DRAG";
         public static final String RB = "RABA";

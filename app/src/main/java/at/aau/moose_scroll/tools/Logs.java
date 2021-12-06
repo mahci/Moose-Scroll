@@ -31,6 +31,16 @@ public class Logs {
         }
     }
 
+    public static void d(String tag, String name, String... params) {
+        if (params.length > 0) {
+            StringBuilder sb = new StringBuilder().append(">>").append(name).append(": ");
+            for(String p : params) {
+                sb.append(p).append(" | ");
+            }
+            Log.d(tag, sb.toString());
+        }
+    }
+
     public static void d(String tag, int mssg) {
         Logs.d(tag, String.valueOf(mssg));
     }
