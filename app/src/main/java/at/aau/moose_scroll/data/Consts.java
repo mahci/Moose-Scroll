@@ -22,6 +22,12 @@ public class Consts {
         VERTICAL, HORIZONTAL, TWOD
     }
 
+    public enum SCROLL_MODE {
+        VERTICAL(1), TWO_DIM(2);
+        private final int n;
+        SCROLL_MODE(int i) { n = i; }
+    }
+
     public enum TECH {
         DRAG, RATE_BASED, MOUSE
     }

@@ -27,7 +27,7 @@ import at.aau.moose_scroll.data.Consts.STRINGS.*;
 
 @SuppressWarnings("ALL")
 public class Networker {
-    private String cName = "Networker--";
+    private String cName = "Networker/";
     // -------------------------------------------------------------------------------
     private final String DESKTOP_IP = "192.168.2.1";
 //    private final String DESKTOP_IP = "192.168.178.34";
@@ -124,7 +124,6 @@ public class Networker {
             while (inBR != null) {
                 try {
                     mssg = inBR.readLine();
-
                     if (mssg != null) { // Connection is lost
                         Log.d(TAG, "Message: " + mssg);
                     } else {

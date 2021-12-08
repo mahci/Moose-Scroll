@@ -17,7 +17,7 @@ public class Actioner {
     private static Actioner instance; // Singelton instance
 
     // Mode of scrolling
-    private TECH technique = TECH.RATE_BASED;
+    private TECH technique = TECH.DRAG;
     private MODE mode = MODE.TWOD;
 
     // Algorithm parameters
@@ -70,8 +70,10 @@ public class Actioner {
     public void act(MotionEvent mevent, int mid) {
         String TAG = NAME + "act";
 
-        if (technique.equals(TECH.DRAG)) scrollDrag(mevent, mid);
-        if (technique.equals(TECH.RATE_BASED)) scrollRateBased(mevent, mid);
+//        if (technique.equals(TECH.DRAG)) scrollDrag(mevent, mid);
+//        if (technique.equals(TECH.RATE_BASED)) scrollRateBased(mevent, mid);
+
+
     }
 
     /**
@@ -91,24 +93,26 @@ public class Actioner {
     private void scrollDrag(MotionEvent mevent, int mid) {
         String TAG = NAME + "drag";
 
+        actionIndex = mevent.getActionIndex(); // Ignored in MOVE
+
         switch (mevent.getActionMasked()) {
         // Only one finger on the screen
         case MotionEvent.ACTION_DOWN:
-            leftmostIndex = 0;
+            nTouchPoints = 0;
             break;
 
         // More fingers are added
         case MotionEvent.ACTION_POINTER_DOWN:
-            if (mevent.getX(actionIndex) < mevent.getX(leftmostIndex)) {
-                leftmostIndex = actionIndex;
-            }
+            nTouchPoints = 0;
+//            if (mevent.getX(actionIndex) < mevent.getX(leftmostIndex)) {
+//                leftmostIndex = actionIndex;
+//            }
             break;
 
         // One finger is up
         case MotionEvent.ACTION_POINTER_UP:
             // Left finger up, recalculate the leftmostIndex
             if (actionIndex == leftmostIndex) {
-                Networker.get().sendMemo(MEMO_STOP_RB);
                 nTouchPoints = 0;
                 leftmostIndex = 0;
                 for (int pi = 1; pi < mevent.getPointerCount(); pi++) {
@@ -130,30 +134,39 @@ public class Actioner {
             // actionIndex = mevent.getActionIndex(); // DOESN'T WORK FOR MOVE!!
             leftmostIndex = findLeftMostIndex(mevent);
 
-            if (nTouchPoints % DRAG_SENSITIVITY == 0) {
-                double dX = mevent.getX() - lastPoint.x;
-                double dY = mevent.getY() - lastPoint.y;
-
-                double scrollDXMM = px2mm(dX * GAIN_DRAG);
-                double scrollDYMM = px2mm(dY * GAIN_DRAG);
-
-                if (mode.equals(MODE.VERTICAL)) {
-                    // Send the movement to server (y/vertical first value)
-                    Memo vtMemo = new Memo(STRINGS.SCROLL, STRINGS.DRAG, scrollDYMM, 0);
-                    Networker.get().sendMemo(vtMemo);
-                }
-
-                if (mode.equals(MODE.TWOD)) {
-                    // Send the movement to server (y/vertical first value)
-                    Memo tdMemo = new Memo(STRINGS.SCROLL, STRINGS.DRAG, scrollDYMM, scrollDXMM);
-                    Networker.get().sendMemo(tdMemo);
-                }
-
-                // Update the points
-                lastPoint = new PointF(mevent.getX(), mevent.getY());
+            int lmInd = 0;
+            for (int pi = 0; pi < mevent.getPointerCount(); pi++) {
+                if (mevent.getX(pi) < mevent.getX(lmInd)) lmInd = pi;
             }
 
-            nTouchPoints++;
+            if (lastPoint == null) { // Start of movement
+                lastPoint = new PointF(mevent.getX(lmInd), mevent.getY(lmInd));
+            } else {
+                    if (nTouchPoints % DRAG_SENSITIVITY == 0) {
+                        double dX = mevent.getX() - lastPoint.x;
+                        double dY = mevent.getY() - lastPoint.y;
+
+                        double scrollDXMM = px2mm(dX * GAIN_DRAG);
+                        double scrollDYMM = px2mm(dY * GAIN_DRAG);
+
+                        if (mode.equals(MODE.VERTICAL)) {
+                            // Send the movement to server (y/vertical first value)
+                            Memo vtMemo = new Memo(STRINGS.SCROLL, STRINGS.DRAG, scrollDYMM, 0);
+                            Networker.get().sendMemo(vtMemo);
+                        }
+
+                        if (mode.equals(MODE.TWOD)) {
+                            // Send the movement to server (y/vertical first value)
+                            Memo tdMemo = new Memo(STRINGS.SCROLL, STRINGS.DRAG, scrollDYMM, scrollDXMM);
+                            Networker.get().sendMemo(tdMemo);
+                        }
+
+                        // Update the points
+                        lastPoint = new PointF(mevent.getX(), mevent.getY());
+                    }
+
+                    nTouchPoints++;
+                }
 
             break;
 
