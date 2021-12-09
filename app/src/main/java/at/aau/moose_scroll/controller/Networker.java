@@ -21,13 +21,14 @@ import java.util.concurrent.Executors;
 
 import at.aau.moose_scroll.data.Consts;
 import at.aau.moose_scroll.data.Memo;
+import at.aau.moose_scroll.tools.Logs;
 import io.reactivex.rxjava3.core.Observable;
 
 import at.aau.moose_scroll.data.Consts.STRINGS.*;
 
 @SuppressWarnings("ALL")
 public class Networker {
-    private String cName = "Networker/";
+    private String NAME = "Networker/";
     // -------------------------------------------------------------------------------
     private final String DESKTOP_IP = "192.168.2.1";
 //    private final String DESKTOP_IP = "192.168.178.34";
@@ -49,7 +50,7 @@ public class Networker {
 
     //-- Runnable for connecting to desktop
     private class ConnectRunnable implements Runnable {
-        String TAG = cName + "connectRunnable";
+        String TAG = NAME + "connectRunnable";
 
         @Override
         public void run() {
@@ -93,7 +94,7 @@ public class Networker {
 
     //-- Runnable for outgoing messages
     private class OutRunnable implements Runnable {
-        String TAG = cName + "OutRunnable";
+        String TAG = NAME + "OutRunnable";
         String message;
 
         public OutRunnable(String mssg) {
@@ -115,7 +116,7 @@ public class Networker {
 
     //-- Runnable for incoming messages
     private class InRunnable implements Runnable {
-        String TAG = cName + "InRunnable";
+        String TAG = NAME + "InRunnable";
 
         @Override
         public void run() {
@@ -162,7 +163,7 @@ public class Networker {
      * Connect to
      */
     public void connect() {
-        String TAG = cName + "connect";
+        String TAG = NAME + "connect";
 
         executor.execute(new ConnectRunnable());
     }
@@ -179,6 +180,8 @@ public class Networker {
      * @param memo Memo
      */
     public void sendMemo(Memo memo) {
+        final String TAG = NAME + "sendMemmo";
+        Logs.d(TAG, memo.toString());
         executor.execute(new OutRunnable(memo.toString()));
     }
 

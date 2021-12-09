@@ -18,7 +18,7 @@ public class Actioner {
 
     // Mode of scrolling
     private TECH technique = TECH.DRAG;
-    private MODE mode = MODE.TWOD;
+//    private MODE mode = MODE.TWOD;
 
     // Algorithm parameters
     private int leftmostId = INVALID_POINTER_ID; // Id of the left finger
@@ -26,15 +26,10 @@ public class Actioner {
     private int actionIndex = INVALID_POINTER_ID; // New finger's index
     private PointF lastPoint;
     private int nTouchPoints; // = touchPointCounter in Demi's code
-
-    // Config
-    private final int DRAG_SENSITIVITY = 2; // Count every n ACTION_MOVEs (drag)
-    private final int RB_SENSITIVITY = 2; // Count every n ACTION_MOVEs (rate-based)
-
-    private final int DENOM_RB = 10; // Denominator in RB's speed formula
-
-    private final double GAIN_DRAG = 1; // Gain factor for drag
-    private final double GAIN_RB = 1; // Gain factor for rate-based
+    private int mActivePointerId = INVALID_POINTER_ID;
+    private int mNumMovePoints = 0;
+    private PointF mLeftmostTouchPoint;
+    private PointF mLastTouchPoint;
 
     private final int PPI = 312; // For calculating movement in mm
 
@@ -42,6 +37,12 @@ public class Actioner {
             STRINGS.SCROLL, STRINGS.RB,
             STRINGS.STOP, STRINGS.STOP);
 
+    // Config
+    private final int SENSITIVITY = 2; // Count every n ACTION_MOVEs (both drag and rate-based)
+    private final int RB_SENSITIVITY = 2; // Count every n ACTION_MOVEs (rate-based)
+    private final int DENOM_RB = 10; // Denominator in RB's speed formula
+    private final double GAIN_DRAG = 1; // Gain factor for drag
+    private final double GAIN_RB = 1; // Gain factor for rate-based
 
     // -------------------------------------------------------------------------------
 
@@ -54,12 +55,8 @@ public class Actioner {
         return instance;
     }
 
-    /**
-     * Set the mode of scrolling
-     * @param m Mode
-     */
-    public void setMode(MODE m) {
-        mode = m;
+    public void setTechnique(TECH tech) {
+        technique = tech;
     }
 
     /**
@@ -67,184 +64,68 @@ public class Actioner {
      * @param mevent MotionEvent to process and perform
      * @param mid Unique id for the event
      */
-    public void act(MotionEvent mevent, int mid) {
-        String TAG = NAME + "act";
-
-//        if (technique.equals(TECH.DRAG)) scrollDrag(mevent, mid);
-//        if (technique.equals(TECH.RATE_BASED)) scrollRateBased(mevent, mid);
-
-
-    }
-
-    /**
-     * Reset the scrolling
-     */
-    private void resetScroll() {
-        // Mode doens't matter here
-        Networker.get().sendMemo(new Memo(STRINGS.SCROLL, STRINGS.RB, 0, 0));
-        nTouchPoints = 0;
-    }
-
-    /**
-     * Perform the Drag scroll technique
-     * @param mevent MotionEvent to process and perform
-     * @param mid Unique id for the event
-     */
-    private void scrollDrag(MotionEvent mevent, int mid) {
-        String TAG = NAME + "drag";
-
-        actionIndex = mevent.getActionIndex(); // Ignored in MOVE
+    public void scroll(MotionEvent mevent, int mid) {
+        String TAG = NAME + "scroll";
 
         switch (mevent.getActionMasked()) {
-        // Only one finger on the screen
-        case MotionEvent.ACTION_DOWN:
-            nTouchPoints = 0;
+
+        case MotionEvent.ACTION_DOWN: {
+            final int pointerIndex = mevent.getActionIndex();
+            final float x = mevent.getX(pointerIndex);
+            final float y = mevent.getY(pointerIndex);
+            mLastTouchPoint = new PointF(x, y);
+
+            mActivePointerId = mevent.getPointerId(pointerIndex);
+            mNumMovePoints = 1;
+            Logs.d(TAG, "PD", mActivePointerId);
             break;
-
-        // More fingers are added
-        case MotionEvent.ACTION_POINTER_DOWN:
-            nTouchPoints = 0;
-//            if (mevent.getX(actionIndex) < mevent.getX(leftmostIndex)) {
-//                leftmostIndex = actionIndex;
-//            }
-            break;
-
-        // One finger is up
-        case MotionEvent.ACTION_POINTER_UP:
-            // Left finger up, recalculate the leftmostIndex
-            if (actionIndex == leftmostIndex) {
-                nTouchPoints = 0;
-                leftmostIndex = 0;
-                for (int pi = 1; pi < mevent.getPointerCount(); pi++) {
-                    if (pi != actionIndex && mevent.getX(pi) < mevent.getX(leftmostIndex)) {
-                        leftmostIndex = pi;
-                    }
-                }
-            }
-
-            break;
-
-        // Last finger up
-        case MotionEvent.ACTION_UP:
-            nTouchPoints = 0;
-            break;
-
-        // Moving the fingers on the screen
-        case MotionEvent.ACTION_MOVE:
-            // actionIndex = mevent.getActionIndex(); // DOESN'T WORK FOR MOVE!!
-            leftmostIndex = findLeftMostIndex(mevent);
-
-            int lmInd = 0;
-            for (int pi = 0; pi < mevent.getPointerCount(); pi++) {
-                if (mevent.getX(pi) < mevent.getX(lmInd)) lmInd = pi;
-            }
-
-            if (lastPoint == null) { // Start of movement
-                lastPoint = new PointF(mevent.getX(lmInd), mevent.getY(lmInd));
-            } else {
-                    if (nTouchPoints % DRAG_SENSITIVITY == 0) {
-                        double dX = mevent.getX() - lastPoint.x;
-                        double dY = mevent.getY() - lastPoint.y;
-
-                        double scrollDXMM = px2mm(dX * GAIN_DRAG);
-                        double scrollDYMM = px2mm(dY * GAIN_DRAG);
-
-                        if (mode.equals(MODE.VERTICAL)) {
-                            // Send the movement to server (y/vertical first value)
-                            Memo vtMemo = new Memo(STRINGS.SCROLL, STRINGS.DRAG, scrollDYMM, 0);
-                            Networker.get().sendMemo(vtMemo);
-                        }
-
-                        if (mode.equals(MODE.TWOD)) {
-                            // Send the movement to server (y/vertical first value)
-                            Memo tdMemo = new Memo(STRINGS.SCROLL, STRINGS.DRAG, scrollDYMM, scrollDXMM);
-                            Networker.get().sendMemo(tdMemo);
-                        }
-
-                        // Update the points
-                        lastPoint = new PointF(mevent.getX(), mevent.getY());
-                    }
-
-                    nTouchPoints++;
-                }
-
-            break;
-
         }
-    }
 
-    /**
-     * Perform the Rate-based scroll technique
-     * @param mevent MotionEvent to process and perform
-     * @param lmIndex Index of the moving finger
-     */
-    private void scrollRateBased(MotionEvent mevent, int lmIndex) {
-        String TAG = NAME + "drag";
+        case MotionEvent.ACTION_POINTER_DOWN: {
+            final int pointerIndex = mevent.getActionIndex();
+            final int activeIndex = mevent.findPointerIndex(mActivePointerId);
 
-        actionIndex = mevent.getActionIndex(); // Ignored in MOVE
+            // If the new finger is to the left
+            if (mevent.getX(pointerIndex) < mevent.getX(activeIndex)) {
+                final float x = mevent.getX(pointerIndex);
+                final float y = mevent.getY(pointerIndex);
+                mLastTouchPoint = new PointF(x, y);
 
-        switch (mevent.getActionMasked()) {
-        // Only one finger on the screen
-        case MotionEvent.ACTION_DOWN:
-//            leftmostIndex = 0;
-            Networker.get().sendMemo(MEMO_STOP_RB);
-            nTouchPoints = 0;
-            lastPoint = null;
-        break;
-
-        // More fingers are added
-        case MotionEvent.ACTION_POINTER_DOWN:
-            Networker.get().sendMemo(MEMO_STOP_RB);
-            nTouchPoints = 0;
-            lastPoint = null;
-//            if (mevent.getX(actionIndex) < mevent.getX(leftmostIndex)) {
-//                leftmostIndex = actionIndex;
-//            }
-        break;
-
-        // One finger is up
-        case MotionEvent.ACTION_POINTER_UP:
-            Networker.get().sendMemo(MEMO_STOP_RB);
-            nTouchPoints = 0;
-            lastPoint = null;
-            // Left finger up, recalculate the leftmostIndex
-//            if (actionIndex == leftmostIndex) {
-//                Networker.get().sendMemo(MEMO_STOP_RB);
-//                nTouchPoints = 0;
-//                leftmostIndex = 0;
-//                for (int pi = 1; pi < mevent.getPointerCount(); pi++) {
-//                    if (pi != actionIndex && mevent.getX(pi) < mevent.getX(leftmostIndex)) {
-//                        leftmostIndex = pi;
-//                    }
-//                }
-//            }
-//            Logs.d(TAG, "leftmostIndex", leftmostIndex);
-
-        break;
-
-        // Last finger up
-        case MotionEvent.ACTION_UP:
-            nTouchPoints = 0;
-            lastPoint = null;
-            Networker.get().sendMemo(MEMO_STOP_RB);
-        break;
-
-        // Moving the fingers on the screen
-        case MotionEvent.ACTION_MOVE:
-
-            // Only count the movement of the leftmost finger
-            int lmInd = 0;
-            for (int pi = 0; pi < mevent.getPointerCount(); pi++) {
-                if (mevent.getX(pi) < mevent.getX(lmInd)) lmInd = pi;
+                mActivePointerId = mevent.getPointerId(pointerIndex);
+                mNumMovePoints = 1;
             }
+            Logs.d(TAG, "PD", mActivePointerId);
+            break;
+        }
 
-            if (lastPoint == null) { // Start of movement
-                lastPoint = new PointF(mevent.getX(lmInd), mevent.getY(lmInd));
-            } else { // Continuation of movement
-                if (nTouchPoints % RB_SENSITIVITY == 0) {
-                    double dX = mevent.getX(lmInd) - lastPoint.x;
-                    double dY = mevent.getY(lmInd) - lastPoint.y;
+        case MotionEvent.ACTION_MOVE: {
+            final int activeIndex = mevent.findPointerIndex(mActivePointerId);
+            Logs.d(TAG, "MOVE id|ind", mActivePointerId, activeIndex);
+            final float x = mevent.getX(activeIndex);
+            final float y = mevent.getY(activeIndex);
 
+            // Continue movement
+            if (mNumMovePoints % SENSITIVITY == 0) {
+                double dX = x - mLastTouchPoint.x;
+                double dY = y - mLastTouchPoint.y;
+
+                // DRAG -------------------------------------------------
+                if (technique.equals(TECH.DRAG)) {
+                    double vtScrollMM = px2mm(dY * GAIN_DRAG);
+                    double hzScrollMM = px2mm(dX * GAIN_DRAG);
+
+                    Memo memo = new Memo(
+                            STRINGS.SCROLL, STRINGS.DRAG,
+                            vtScrollMM, hzScrollMM);
+                    Networker.get().sendMemo(memo);
+
+                    // Update the last point
+                    mLastTouchPoint = new PointF(x, y);
+                }
+                // -------------------------------------------------------
+
+                // RATE-BASED --------------------------------------------
+                if (technique.equals(TECH.RATE_BASED)) {
                     double absDX = Math.pow(Math.abs(dX), GAIN_RB) / DENOM_RB; // My version
                     double absDXMM = px2mm(absDX);
                     int dirDX = (int) (dX / Math.abs(dX));
@@ -252,39 +133,62 @@ public class Actioner {
                     double absDY = Math.pow(Math.abs(dY), GAIN_RB) / DENOM_RB; // My version
                     double absDYMM = px2mm(absDY);
                     int dirDY = (int) (dY / Math.abs(dY));
-                    Logs.d(TAG, "Deltas(mm)", absDYMM, absDXMM);
-                    if (mode.equals(MODE.VERTICAL)) {
-                        // Only send amounts > 0.1 mm ( > ~ 1.2 px)
-                        if (absDXMM > 0.1) {
-                            Networker.get().sendMemo(
-                                    new Memo(STRINGS.SCROLL, STRINGS.RB,
-                                            absDYMM * dirDY, 0)
-                            );
-                        }
+
+                    double vtScrollMM = absDYMM * dirDY;
+                    double hzScrollMM = absDXMM * dirDX;
+
+                    // Only send amounts > 1 mm ( > ~ 1.2 px)
+                    Logs.d(TAG, "RB", absDXMM, absDYMM);
+                    if (absDXMM > 0.5 || absDYMM > 0.5) {
+                        Memo memo = new Memo(
+                                STRINGS.SCROLL, STRINGS.RB,
+                                vtScrollMM, hzScrollMM);
+                        Networker.get().sendMemo(memo);
                     }
 
-                    if (mode.equals(MODE.TWOD)) {
-                        // Only send amounts > 0.1 mm ( > ~ 1.2 px)
-                        if (absDXMM > 0.1 || absDYMM > 0.1) {
-                            Networker.get().sendMemo(
-                                    new Memo(STRINGS.SCROLL, STRINGS.RB,
-                                            absDYMM * dirDY, absDXMM * dirDX)
-                            );
-                        }
-                    }
-
+                    // Last point shouldn't change!
                 }
-
-                nTouchPoints++;
+                // -------------------------------------------------------
             }
 
+            mNumMovePoints++;
 
-        break;
-
+            break;
         }
 
+        case MotionEvent.ACTION_POINTER_UP: {
+            final int pointerIndex = mevent.getActionIndex();
+            final int pointerId = mevent.getPointerId(pointerIndex);
+
+            // If the left finger left the screen, find the next leftmost
+            // IMPORTANT: the left finger still counts in "getPointerCount()"
+            if (pointerId == mActivePointerId) {
+                final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
+
+                final float x = mevent.getX(newPointerIndex);
+                final float y = mevent.getY(newPointerIndex);
+                mLastTouchPoint = new PointF(x, y);
+
+                mActivePointerId = mevent.getPointerId(newPointerIndex);
+
+                if (technique.equals(TECH.RATE_BASED)) stopScroll();
+            }
+
+            break;
+        }
+
+        case MotionEvent.ACTION_UP: {
+            mActivePointerId = INVALID_POINTER_ID;
+            if (technique.equals(TECH.RATE_BASED)) stopScroll();
+            break;
+        }
+
+        }
     }
 
+    private void stopScroll() {
+        Networker.get().sendMemo(MEMO_STOP_RB);
+    }
 
     /**
      * Check if a pointer is leftmost

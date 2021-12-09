@@ -20,16 +20,14 @@ import android.os.Vibrator;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import at.aau.moose_scroll.controller.Actioner;
 import at.aau.moose_scroll.controller.AdminManager;
@@ -197,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
         @SuppressLint("ClickableViewAccessibility")
         @Override
         public boolean onTouchEvent(MotionEvent event) {
-            Actioner.get().act(event, 0);
+            Actioner.get().scroll(event, 0);
             return super.onTouchEvent(event);
         }
     }
@@ -215,6 +213,27 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return result;
+    }
+
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        int action = event.getAction();
+        int keyCode = event.getKeyCode();
+        switch (keyCode) {
+        case KeyEvent.KEYCODE_VOLUME_UP:
+            if (action == KeyEvent.ACTION_DOWN) {
+                Actioner.get().setTechnique(TECH.RATE_BASED);
+            }
+            return true;
+        case KeyEvent.KEYCODE_VOLUME_DOWN:
+            if (action == KeyEvent.ACTION_DOWN) {
+                Actioner.get().setTechnique(TECH.DRAG);
+            }
+            return true;
+        default:
+            return super.dispatchKeyEvent(event);
+        }
     }
 
 }

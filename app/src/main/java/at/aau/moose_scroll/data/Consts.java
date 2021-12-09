@@ -29,6 +29,6 @@ public class Consts {
     }
 
     public enum TECH {
-        DRAG, RATE_BASED, MOUSE
+        DRAG, RATE_BASED
     }
 }
