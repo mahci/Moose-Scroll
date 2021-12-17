@@ -107,6 +107,8 @@ public class Actioner {
 
             mActivePointerId = mevent.getPointerId(pointerIndex);
             mNumMovePoints = 1;
+
+
             break;
         }
 
