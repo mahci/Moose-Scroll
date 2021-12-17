@@ -69,8 +69,8 @@ public class Memo {
     }
 
     /**
-     * Convert and return the X value
-     * @return Int X value
+     * Convert and return the value 1
+     * @return Int value 1
      */
     public int getValue1Int() {
         try {
@@ -82,8 +82,8 @@ public class Memo {
     }
 
     /**
-     * Convert and return the value
-     * @return Int Y Value
+     * Convert and return the value 2
+     * @return Int value 2
      */
     public int getValue2Int() {
         try {
@@ -93,6 +93,34 @@ public class Memo {
         }
 
     }
+
+    /**
+     * Convert and return the value 1
+     * @return Double value 1
+     */
+    public int getValue1Double() {
+        try {
+            return (int) Double.parseDouble(value1);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+
+    }
+
+    /**
+     * Convert and return the value 2
+     * @return Double value 2
+     */
+    public int getValue2Double() {
+        try {
+            return (int) Double.parseDouble(value2);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+
+    }
+
+
 
     /**
      * Get the Memo from String

@@ -29,7 +29,7 @@ import at.aau.moose_scroll.data.Consts.STRINGS.*;
 @SuppressWarnings("ALL")
 public class Networker {
     private String NAME = "Networker/";
-    // -------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
     private final String DESKTOP_IP = "192.168.2.1";
 //    private final String DESKTOP_IP = "192.168.178.34";
     private final int DESKTOP_PORT = 8000;
@@ -104,7 +104,6 @@ public class Networker {
         @Override
         public void run() {
             if (message != null && outPW != null) {
-                Log.d(TAG, "Sending message...");
                 outPW.println(message);
                 outPW.flush();
                 Log.d(TAG, message + " sent");
@@ -127,6 +126,17 @@ public class Networker {
                     mssg = inBR.readLine();
                     if (mssg != null) { // Connection is lost
                         Log.d(TAG, "Message: " + mssg);
+
+                        Memo memo = Memo.valueOf(mssg);
+                        switch (memo.getAction()) {
+                            case CONFIG: {
+                                Actioner.get().config(memo);
+                                break;
+                            }
+                        }
+                        if (memo.getAction().equals(CONFIG)) {
+
+                        }
                     } else {
                         resetConnection();
                         return;
@@ -181,7 +191,6 @@ public class Networker {
      */
     public void sendMemo(Memo memo) {
         final String TAG = NAME + "sendMemmo";
-        Logs.d(TAG, memo.toString());
         executor.execute(new OutRunnable(memo.toString()));
     }
 

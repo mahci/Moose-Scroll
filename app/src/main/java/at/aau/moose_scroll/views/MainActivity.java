@@ -220,20 +220,22 @@ public class MainActivity extends AppCompatActivity {
     public boolean dispatchKeyEvent(KeyEvent event) {
         int action = event.getAction();
         int keyCode = event.getKeyCode();
-        switch (keyCode) {
-        case KeyEvent.KEYCODE_VOLUME_UP:
-            if (action == KeyEvent.ACTION_DOWN) {
-                Actioner.get().setTechnique(TECH.RATE_BASED);
-            }
-            return true;
-        case KeyEvent.KEYCODE_VOLUME_DOWN:
-            if (action == KeyEvent.ACTION_DOWN) {
-                Actioner.get().setTechnique(TECH.DRAG);
-            }
-            return true;
-        default:
-            return super.dispatchKeyEvent(event);
-        }
+//        switch (keyCode) {
+//        case KeyEvent.KEYCODE_VOLUME_UP:
+//            if (action == KeyEvent.ACTION_DOWN) {
+//                Actioner.get().setmActiveTechnique(TECHNIQUE.RATE_BASED);
+//            }
+//            return true;
+//        case KeyEvent.KEYCODE_VOLUME_DOWN:
+//            if (action == KeyEvent.ACTION_DOWN) {
+//                Actioner.get().setmActiveTechnique(TECHNIQUE.DRAG);
+//            }
+//            return true;
+//        default:
+//            return super.dispatchKeyEvent(event);
+//        }
+
+        return false;
     }
 
 }

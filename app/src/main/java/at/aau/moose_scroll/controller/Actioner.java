@@ -17,7 +17,7 @@ public class Actioner {
     private static Actioner instance; // Singelton instance
 
     // Mode of scrolling
-    private TECH technique = TECH.DRAG;
+    private TECHNIQUE mActiveTechnique = TECHNIQUE.DRAG;
 //    private MODE mode = MODE.TWOD;
 
     // Algorithm parameters
@@ -38,11 +38,11 @@ public class Actioner {
             STRINGS.STOP, STRINGS.STOP);
 
     // Config
-    private final int SENSITIVITY = 2; // Count every n ACTION_MOVEs (both drag and rate-based)
-    private final int RB_SENSITIVITY = 2; // Count every n ACTION_MOVEs (rate-based)
-    private final int DENOM_RB = 10; // Denominator in RB's speed formula
-    private final double GAIN_DRAG = 1; // Gain factor for drag
-    private final double GAIN_RB = 1; // Gain factor for rate-based
+    private int mDragSensitivity = 2; // Count every n ACTION_MOVEs
+    private double mDragGain = 100; // Gain factor for drag
+    private double mRBGain = 1.5; // Gain factor for rate-based
+    private int mRBSensititivity = 1; // Count every n ACTION_MOVEs (rate-based)
+    private int mRBDenom = 50; // Denominator in RB's speed formula
 
     // -------------------------------------------------------------------------------
 
@@ -55,8 +55,38 @@ public class Actioner {
         return instance;
     }
 
-    public void setTechnique(TECH tech) {
-        technique = tech;
+    public void config(Memo memo) {
+        final String TAG = NAME + "config";
+
+        switch (memo.getMode()) {
+        case STRINGS.TECHNIQUE: {
+            mActiveTechnique = TECHNIQUE.values()[memo.getValue1Int()];
+            Logs.d(TAG, "New Technique", mActiveTechnique.toString());
+
+            break;
+        }
+        case STRINGS.SENSITIVITY: {
+            if (mActiveTechnique.equals(TECHNIQUE.DRAG))
+                mDragSensitivity = memo.getValue1Double();
+            if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED))
+                mRBSensititivity = memo.getValue1Double();
+
+            break;
+        }
+        case STRINGS.GAIN: {
+            if (mActiveTechnique.equals(TECHNIQUE.DRAG))
+                mDragGain = memo.getValue1Double();
+            if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED))
+                mRBGain = memo.getValue1Double();
+
+            break;
+        }
+        case STRINGS.DENOM: {
+            mRBDenom = memo.getValue1Int();
+            break;
+        }
+        }
+
     }
 
     /**
@@ -77,7 +107,6 @@ public class Actioner {
 
             mActivePointerId = mevent.getPointerId(pointerIndex);
             mNumMovePoints = 1;
-            Logs.d(TAG, "PD", mActivePointerId);
             break;
         }
 
@@ -94,52 +123,59 @@ public class Actioner {
                 mActivePointerId = mevent.getPointerId(pointerIndex);
                 mNumMovePoints = 1;
             }
-            Logs.d(TAG, "PD", mActivePointerId);
             break;
         }
 
         case MotionEvent.ACTION_MOVE: {
             final int activeIndex = mevent.findPointerIndex(mActivePointerId);
-            Logs.d(TAG, "MOVE id|ind", mActivePointerId, activeIndex);
             final float x = mevent.getX(activeIndex);
             final float y = mevent.getY(activeIndex);
 
-            // Continue movement
-            if (mNumMovePoints % SENSITIVITY == 0) {
-                double dX = x - mLastTouchPoint.x;
-                double dY = y - mLastTouchPoint.y;
+            // DRAG -------------------------------------------------
+            if (mActiveTechnique.equals(TECHNIQUE.DRAG)) {
 
-                // DRAG -------------------------------------------------
-                if (technique.equals(TECH.DRAG)) {
-                    double vtScrollMM = px2mm(dY * GAIN_DRAG);
-                    double hzScrollMM = px2mm(dX * GAIN_DRAG);
+                if (mNumMovePoints % mDragSensitivity == 0) {
+                    final double dX = x - mLastTouchPoint.x;
+                    final double dY = y - mLastTouchPoint.y;
 
-                    Memo memo = new Memo(
-                            STRINGS.SCROLL, STRINGS.DRAG,
-                            vtScrollMM, hzScrollMM);
-                    Networker.get().sendMemo(memo);
+                    double vtScrollMM = px2mm(dY * mDragGain);
+                    double hzScrollMM = px2mm(dX * mDragGain);
+
+                    Logs.d(TAG, "DRAG vt|hz", vtScrollMM, hzScrollMM);
+                    if (Math.abs(vtScrollMM) > 0.5 || Math.abs(hzScrollMM) > 0.5) {
+                        Memo memo = new Memo(
+                                STRINGS.SCROLL, STRINGS.DRAG,
+                                vtScrollMM, hzScrollMM);
+                        Networker.get().sendMemo(memo);
+                    }
 
                     // Update the last point
                     mLastTouchPoint = new PointF(x, y);
                 }
-                // -------------------------------------------------------
 
-                // RATE-BASED --------------------------------------------
-                if (technique.equals(TECH.RATE_BASED)) {
-                    double absDX = Math.pow(Math.abs(dX), GAIN_RB) / DENOM_RB; // My version
-                    double absDXMM = px2mm(absDX);
-                    int dirDX = (int) (dX / Math.abs(dX));
 
-                    double absDY = Math.pow(Math.abs(dY), GAIN_RB) / DENOM_RB; // My version
-                    double absDYMM = px2mm(absDY);
-                    int dirDY = (int) (dY / Math.abs(dY));
+            }
 
-                    double vtScrollMM = absDYMM * dirDY;
-                    double hzScrollMM = absDXMM * dirDX;
+            // RATE-BASED --------------------------------------------
+            if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED)) {
+
+                if (mNumMovePoints % mRBSensititivity == 0) {
+                    final double dX = x - mLastTouchPoint.x;
+                    final double dY = y - mLastTouchPoint.y;
+
+                    final double dXAbsMM = px2mm(Math.abs(dX));
+                    final double dXMM = Math.pow(dXAbsMM, mRBGain) / mRBDenom; // My version
+                    final int dirDX = (int) (dX / Math.abs(dX));
+
+                    final double dYAbsMM = px2mm(Math.abs(dY));
+                    final double dYMM = Math.pow(dYAbsMM, mRBGain) / mRBDenom; // My version
+                    final int dirDY = (int) (dY / Math.abs(dY));
+
+                    final double vtScrollMM = dYMM * dirDY;
+                    final double hzScrollMM = dXMM * dirDX;
 
                     // Only send amounts > 1 mm ( > ~ 1.2 px)
-                    Logs.d(TAG, "RB", absDXMM, absDYMM);
-                    if (absDXMM > 0.5 || absDYMM > 0.5) {
+                    if (dYAbsMM > 0.5 || dXAbsMM > 0.5) {
                         Memo memo = new Memo(
                                 STRINGS.SCROLL, STRINGS.RB,
                                 vtScrollMM, hzScrollMM);
@@ -148,7 +184,7 @@ public class Actioner {
 
                     // Last point shouldn't change!
                 }
-                // -------------------------------------------------------
+
             }
 
             mNumMovePoints++;
@@ -171,7 +207,7 @@ public class Actioner {
 
                 mActivePointerId = mevent.getPointerId(newPointerIndex);
 
-                if (technique.equals(TECH.RATE_BASED)) stopScroll();
+                if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED)) stopScroll();
             }
 
             break;
@@ -179,7 +215,7 @@ public class Actioner {
 
         case MotionEvent.ACTION_UP: {
             mActivePointerId = INVALID_POINTER_ID;
-            if (technique.equals(TECH.RATE_BASED)) stopScroll();
+            if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED)) stopScroll();
             break;
         }
 
