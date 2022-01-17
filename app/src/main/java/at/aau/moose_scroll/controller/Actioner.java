@@ -1,9 +1,21 @@
 package at.aau.moose_scroll.controller;
 
+import static android.view.MotionEvent.ACTION_DOWN;
+import static android.view.MotionEvent.ACTION_MOVE;
+import static android.view.MotionEvent.ACTION_POINTER_DOWN;
+import static android.view.MotionEvent.ACTION_POINTER_UP;
+import static android.view.MotionEvent.ACTION_UP;
 import static android.view.MotionEvent.INVALID_POINTER_ID;
 
+import static at.aau.moose_scroll.data.Consts.TECHNIQUE.FLICK;
+
+import android.annotation.SuppressLint;
 import android.graphics.PointF;
+import android.os.Environment;
+import android.util.Log;
 import android.view.MotionEvent;
+import android.view.View;
+import android.webkit.WebView;
 
 import at.aau.moose_scroll.data.Consts.*;
 import at.aau.moose_scroll.data.Memo;
@@ -30,12 +42,14 @@ public class Actioner {
     private int mNumMovePoints = 0;
     private PointF mLeftmostTouchPoint;
     private PointF mLastTouchPoint;
+    private double[] mLastVelocities = new double[]{};
+    private int mTotalDistanceX = 0;
+    private int mTotalDistanceY = 0;
+    private boolean mAutoscroll = false;
+    private long mTimeLastMoved;
+    private boolean mContinueScroll = false;
 
     private final int PPI = 312; // For calculating movement in mm
-
-    private final Memo MEMO_STOP_RB = new Memo(
-            STRINGS.SCROLL, STRINGS.RB,
-            STRINGS.STOP, STRINGS.STOP);
 
     // Config
     private int mDragSensitivity = 2; // Count every n ACTION_MOVEs
@@ -43,6 +57,9 @@ public class Actioner {
     private double mRBGain = 1.5; // Gain factor for rate-based
     private int mRBSensititivity = 1; // Count every n ACTION_MOVEs (rate-based)
     private int mRBDenom = 50; // Denominator in RB's speed formula
+
+    // Views
+    private WebView mWebView;
 
     // -------------------------------------------------------------------------------
 
@@ -57,7 +74,7 @@ public class Actioner {
 
     public void config(Memo memo) {
         final String TAG = NAME + "config";
-
+        Logs.d(TAG, memo);
         switch (memo.getMode()) {
         case STRINGS.TECHNIQUE: {
             mActiveTechnique = TECHNIQUE.values()[memo.getValue1Int()];
@@ -90,50 +107,103 @@ public class Actioner {
     }
 
     /**
+     * Set the WebView
+     * @param view View (got from MainAActivity)
+     * @param pagePath Path to the html file
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    public void setWebView(View view, String pagePath) {
+        String TAG = NAME + "setWebView";
+
+        mWebView = (WebView) view;
+        mWebView.getSettings().setAllowFileAccess(true);
+        mWebView.loadUrl(pagePath);
+        mWebView.scrollTo(50000, 50000);
+
+        // Scrolling listners
+        mWebView.setOnTouchListener((v, event) -> false);
+        mWebView.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+            Log.d(TAG, "Y= " + oldScrollY + " -> " + scrollY);
+            Log.d(TAG, "X= " + oldScrollX + " -> " + scrollX);
+            final int dY = scrollY - oldScrollY;
+            final int dX = scrollX - oldScrollX;
+            final double coef = -1 / 10.0;
+            Networker.get().sendMemo(
+                    new Memo(STRINGS.SCROLL, FLICK, dY * coef, dX * coef));
+        });
+    }
+
+    /**
      * Perform the action
-     * @param mevent MotionEvent to process and perform
+     * @param event MotionEvent to process and perform
      * @param mid Unique id for the event
      */
-    public void scroll(MotionEvent mevent, int mid) {
+    public void scroll(MotionEvent event, int mid) {
         String TAG = NAME + "scroll";
 
-        switch (mevent.getActionMasked()) {
+        switch (event.getActionMasked()) {
 
         case MotionEvent.ACTION_DOWN: {
-            final int pointerIndex = mevent.getActionIndex();
-            final float x = mevent.getX(pointerIndex);
-            final float y = mevent.getY(pointerIndex);
+            final int pointerIndex = event.getActionIndex();
+            final float x = event.getX(pointerIndex);
+            final float y = event.getY(pointerIndex);
             mLastTouchPoint = new PointF(x, y);
 
-            mActivePointerId = mevent.getPointerId(pointerIndex);
+            mActivePointerId = event.getPointerId(pointerIndex);
             mNumMovePoints = 1;
 
+            // Flick ----------------------------------------------------
+            if (mActiveTechnique.equals(FLICK)) {
+//                resetFlick();
+                mContinueScroll = true;
+                mWebView.dispatchTouchEvent(event);
+            }
 
             break;
         }
 
         case MotionEvent.ACTION_POINTER_DOWN: {
-            final int pointerIndex = mevent.getActionIndex();
-            final int activeIndex = mevent.findPointerIndex(mActivePointerId);
+            final int pointerIndex = event.getActionIndex();
+            final int pointerId = event.getPointerId(pointerIndex);
+            final int activeIndex = event.findPointerIndex(mActivePointerId);
 
-            // If the new finger is to the left
-            if (mevent.getX(pointerIndex) < mevent.getX(activeIndex)) {
-                final float x = mevent.getX(pointerIndex);
-                final float y = mevent.getY(pointerIndex);
+            // Same finger is returned
+            if (pointerId == mActivePointerId) {
+
+                // Flick ----------------------------------------------------
+                if (mActiveTechnique.equals(FLICK)) {
+                    mContinueScroll = true;
+
+                    final MotionEvent newEvent = getNewEvent(event);
+                    mWebView.dispatchTouchEvent(newEvent);
+                }
+
+            } else if (event.getX(pointerIndex) < event.getX(activeIndex)) {
+                // If the new finger is to the left
+                final float x = event.getX(pointerIndex);
+                final float y = event.getY(pointerIndex);
                 mLastTouchPoint = new PointF(x, y);
 
-                mActivePointerId = mevent.getPointerId(pointerIndex);
+                mActivePointerId = event.getPointerId(pointerIndex);
                 mNumMovePoints = 1;
+
+                // Flick ----------------------------------------------------
+                if (mActiveTechnique.equals(FLICK)) {
+                    mContinueScroll = true;
+
+                    final MotionEvent newEvent = getNewEvent(event);
+                    mWebView.dispatchTouchEvent(newEvent);
+                }
             }
             break;
         }
 
         case MotionEvent.ACTION_MOVE: {
-            final int activeIndex = mevent.findPointerIndex(mActivePointerId);
-            final float x = mevent.getX(activeIndex);
-            final float y = mevent.getY(activeIndex);
+            final int activeIndex = event.findPointerIndex(mActivePointerId);
+            final float x = event.getX(activeIndex);
+            final float y = event.getY(activeIndex);
 
-            // DRAG -------------------------------------------------
+            // DRAG ----------------------------------------------------
             if (mActiveTechnique.equals(TECHNIQUE.DRAG)) {
 
                 if (mNumMovePoints % mDragSensitivity == 0) {
@@ -145,8 +215,8 @@ public class Actioner {
 
                     Logs.d(TAG, "DRAG vt|hz", vtScrollMM, hzScrollMM);
                     if (Math.abs(vtScrollMM) > 0.5 || Math.abs(hzScrollMM) > 0.5) {
-                        Memo memo = new Memo(
-                                STRINGS.SCROLL, STRINGS.DRAG,
+                        Memo memo = new Memo(STRINGS.SCROLL,
+                                mActiveTechnique.toString(),
                                 vtScrollMM, hzScrollMM);
                         Networker.get().sendMemo(memo);
                     }
@@ -157,8 +227,9 @@ public class Actioner {
 
 
             }
+            //-----------------------------------------------------------
 
-            // RATE-BASED --------------------------------------------
+            // RATE-BASED -----------------------------------------------
             if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED)) {
 
                 if (mNumMovePoints % mRBSensititivity == 0) {
@@ -176,10 +247,11 @@ public class Actioner {
                     final double vtScrollMM = dYMM * dirDY;
                     final double hzScrollMM = dXMM * dirDX;
 
+                    Logs.d(TAG, "RATE-BASED", vtScrollMM, hzScrollMM);
                     // Only send amounts > 1 mm ( > ~ 1.2 px)
                     if (dYAbsMM > 0.5 || dXAbsMM > 0.5) {
-                        Memo memo = new Memo(
-                                STRINGS.SCROLL, STRINGS.RB,
+                        Memo memo = new Memo(STRINGS.SCROLL,
+                                mActiveTechnique.toString(),
                                 vtScrollMM, hzScrollMM);
                         Networker.get().sendMemo(memo);
                     }
@@ -188,6 +260,24 @@ public class Actioner {
                 }
 
             }
+            //-----------------------------------------------------------
+
+            // FLICK ----------------------------------------------------
+            if (mActiveTechnique.equals(FLICK)) {
+//                final double dX = x - mLastTouchPoint.x;
+//                final double dY = y - mLastTouchPoint.y;
+//                mLastTouchPoint = new PointF(x, y);
+//
+//                mTotalDistanceX += px2mm(dX);
+//                mTotalDistanceY += px2mm(dY);
+
+                if (mContinueScroll) {
+                    final MotionEvent newEvent = getNewEvent(event);
+                    mWebView.dispatchTouchEvent(newEvent);
+                }
+
+            }
+            //-----------------------------------------------------------
 
             mNumMovePoints++;
 
@@ -195,21 +285,31 @@ public class Actioner {
         }
 
         case MotionEvent.ACTION_POINTER_UP: {
-            final int pointerIndex = mevent.getActionIndex();
-            final int pointerId = mevent.getPointerId(pointerIndex);
+            final int pointerIndex = event.getActionIndex();
+            final int pointerId = event.getPointerId(pointerIndex);
 
             // If the left finger left the screen, find the next leftmost
             // IMPORTANT: the left finger still counts in "getPointerCount()"
             if (pointerId == mActivePointerId) {
                 final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
 
-                final float x = mevent.getX(newPointerIndex);
-                final float y = mevent.getY(newPointerIndex);
+                final float x = event.getX(newPointerIndex);
+                final float y = event.getY(newPointerIndex);
                 mLastTouchPoint = new PointF(x, y);
 
-                mActivePointerId = mevent.getPointerId(newPointerIndex);
+                mActivePointerId = event.getPointerId(newPointerIndex);
 
+                // RATE-BASED ----------------------------------------------------------
                 if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED)) stopScroll();
+
+                // FLICK ---------------------------------------------------------------
+                if (mActiveTechnique.equals(FLICK)) {
+                    final MotionEvent newEvent = getNewEvent(event);
+                    mWebView.dispatchTouchEvent(newEvent);
+
+                    mContinueScroll = false;
+                }
+
             }
 
             break;
@@ -217,15 +317,76 @@ public class Actioner {
 
         case MotionEvent.ACTION_UP: {
             mActivePointerId = INVALID_POINTER_ID;
+            // RATE-BASED ----------------------------------------------------------
             if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED)) stopScroll();
+            // FLICK ---------------------------------------------------------------
+            if (mActiveTechnique.equals(FLICK)) {
+                mWebView.dispatchTouchEvent(event);
+                mContinueScroll = false;
+            }
+
             break;
         }
 
         }
     }
 
+    private MotionEvent getNewEvent(MotionEvent oldEvent) {
+        final int newPointerCount = 1;
+        if (mActivePointerId != INVALID_POINTER_ID) {
+            final int activeIndex = oldEvent.findPointerIndex(mActivePointerId);
+            int newAction = ACTION_DOWN;
+
+            switch (oldEvent.getActionMasked()) {
+            case ACTION_POINTER_DOWN: newAction = ACTION_DOWN;
+                break;
+            case ACTION_POINTER_UP: newAction = ACTION_UP;
+                break;
+            case ACTION_MOVE: newAction = ACTION_MOVE;
+                break;
+            }
+
+            final MotionEvent.PointerProperties[] newProps =
+                    new MotionEvent.PointerProperties[newPointerCount];
+            newProps[0] = new MotionEvent.PointerProperties();
+            oldEvent.getPointerProperties(activeIndex, newProps[0]);
+            final MotionEvent.PointerCoords[] newCoords =
+                    new MotionEvent.PointerCoords[newPointerCount];
+            newCoords[0] = new MotionEvent.PointerCoords();
+            oldEvent.getPointerCoords(activeIndex, newCoords[0]);
+
+            final MotionEvent newEvent = MotionEvent.obtain(
+                    oldEvent.getDownTime(), oldEvent.getEventTime(),
+                    newAction, newPointerCount,
+                    newProps, newCoords,
+                    oldEvent.getMetaState(), oldEvent.getButtonState(),
+                    oldEvent.getXPrecision(), oldEvent.getYPrecision(),
+                    oldEvent.getDeviceId(), oldEvent.getEdgeFlags(),
+                    oldEvent.getSource(), oldEvent.getFlags()
+            );
+
+            return newEvent;
+        } else {
+            return MotionEvent.obtain(oldEvent);
+        }
+    }
+
+    private void resetFlick() {
+        mLastVelocities = new double[]{0.0, 0.0, 0.0};
+        mTotalDistanceX = 0;
+        mTotalDistanceY = 0;
+        mTimeLastMoved = System.currentTimeMillis();
+        if (mAutoscroll) {
+            stopScroll();
+            mAutoscroll = false;
+        }
+    }
+
+    /**
+     * Stop any scrolling (no matter the technique)
+     */
     private void stopScroll() {
-        Networker.get().sendMemo(MEMO_STOP_RB);
+        Networker.get().sendMemo(Memo.RB_STOP_MEMO);
     }
 
     /**

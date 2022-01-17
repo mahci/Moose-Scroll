@@ -6,6 +6,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import at.aau.moose_scroll.tools.Logs;
+
 public class Memo {
     private static final String NAME = "Memo/";
 
@@ -13,6 +15,8 @@ public class Memo {
     private String mode;
     private String value1;
     private String value2;
+
+    public static Memo RB_STOP_MEMO = new Memo(SCROLL, Consts.TECHNIQUE.RATE_BASED, STOP, STOP);
 
     /**
      * Constructor
@@ -26,6 +30,14 @@ public class Memo {
         mode = md;
         value1 = v1;
         value2 = v2;
+    }
+
+    public Memo(String act, Consts.TECHNIQUE tech, String v1, String v2) {
+        this(act, tech.toString(), v1, v2);
+    }
+
+    public Memo(String act, Consts.TECHNIQUE tech, double v1, double v2) {
+        this(act, tech.toString(), v1, v2);
     }
 
     /**
@@ -121,7 +133,6 @@ public class Memo {
     }
 
 
-
     /**
      * Get the Memo from String
      * @param mssg String
@@ -133,6 +144,7 @@ public class Memo {
         Memo result = new Memo();
         if (mssg != null) {
             String[] parts = mssg.split(SP);
+            Logs.d(TAG, parts.length);
             if (parts.length == 4) {
                 result.action = parts[0];
                 result.mode = parts[1];

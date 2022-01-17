@@ -14,6 +14,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Vibrator;
@@ -22,21 +23,25 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.WebView;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import at.aau.moose_scroll.R;
 import at.aau.moose_scroll.controller.Actioner;
 import at.aau.moose_scroll.controller.AdminManager;
 import at.aau.moose_scroll.controller.Networker;
 import at.aau.moose_scroll.data.Consts.*;
+import at.aau.moose_scroll.tools.Logs;
 
 public class MainActivity extends AppCompatActivity {
 
-    final static String TAG = "MainActivity--";
+    final static String TAG = "MainActivity/";
     // -------------------------------------------------------------------------------
 
     static boolean isAdmin = false; // is the app admin?
@@ -69,17 +74,23 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         requestWindowFeature(Window.FEATURE_NO_TITLE); // For removing the status bar
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
 
-        // Initializations
+        // Set webView in Actioner
+        String pagePath = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) + "/index.html";
+        Actioner.get().setWebView(findViewById(R.id.webView), pagePath);
+
+        // Setting
         executorService = Executors.newSingleThreadExecutor();
         dialogBuilder = new AlertDialog.Builder(this);
         Networker.get().setVibrator((Vibrator) getSystemService(VIBRATOR_SERVICE));
-        checkAdmin();
         Networker.get().setMainHandler(mainHandler);
+
+        // Init
+        checkAdmin();
 
         showDialog("Connecting to desktop...");
         Networker.get().connect();
-
     }
 
     /**

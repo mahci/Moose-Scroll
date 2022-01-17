@@ -3,7 +3,7 @@ package at.aau.moose_scroll.data;
 public class Consts {
 
     public static class STRINGS {
-        public static final String SP = "_";
+        public static final String SP = ";";
         public static final String INTRO = "INTRO";
         public static final String MOOSE = "MOOSE";
         public final static String TECHNIQUE = "TECHNIQUE";
@@ -15,6 +15,7 @@ public class Consts {
         public final static String SENSITIVITY = "SENSITIVITY";
         public final static String GAIN = "GAIN";
         public final static String DENOM = "DENOM";
+        public final static String EMPTY = "";
     }
 
     public static class INTS {
@@ -33,7 +34,7 @@ public class Consts {
     }
 
     public enum TECHNIQUE {
-        DRAG(1), RATE_BASED(2), MOUSE(3);
+        DRAG(1), RATE_BASED(2), FLICK(3), MOUSE(4);
         private final int n;
         TECHNIQUE(int i) { n = i; }
     }

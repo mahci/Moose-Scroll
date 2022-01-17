@@ -22,6 +22,7 @@ import java.util.concurrent.Executors;
 import at.aau.moose_scroll.data.Consts;
 import at.aau.moose_scroll.data.Memo;
 import at.aau.moose_scroll.tools.Logs;
+import at.aau.moose_scroll.views.MainActivity;
 import io.reactivex.rxjava3.core.Observable;
 
 import at.aau.moose_scroll.data.Consts.STRINGS.*;
@@ -62,8 +63,10 @@ public class Networker {
                     Log.d(TAG, "Connection successful!");
                     vibrate(SUCCESS_VIBRATE_DUR);
 
-                    // Send a message to MainActivity (for dismissing the dialog)
-                    sendToMain(CLOSE_DLG);
+                    // Start the main activity part
+                    Message closeDialogMssg = new Message();
+                    closeDialogMssg.what = CLOSE_DLG;
+                    mainThreadHandler.sendMessage(closeDialogMssg);
 
                     // Create buffers
                     inBR = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -128,15 +131,14 @@ public class Networker {
                         Log.d(TAG, "Message: " + mssg);
 
                         Memo memo = Memo.valueOf(mssg);
+                        Logs.d(TAG, "Action: " + memo.getAction());
                         switch (memo.getAction()) {
                             case CONFIG: {
                                 Actioner.get().config(memo);
                                 break;
                             }
                         }
-                        if (memo.getAction().equals(CONFIG)) {
 
-                        }
                     } else {
                         resetConnection();
                         return;
@@ -194,17 +196,6 @@ public class Networker {
         executor.execute(new OutRunnable(memo.toString()));
     }
 
-    /**
-     * Send a message to MainHanlder (MainActivity)
-     * @param code int code to send
-     */
-    private void sendToMain(int code) {
-        if (mainThreadHandler != null) {
-            Message mssg = new Message();
-            mssg.what = code;
-            mainThreadHandler.sendMessage(mssg);
-        }
-    }
 
     /**
      * Vibrate for millisec

@@ -2,6 +2,8 @@ package at.aau.moose_scroll.tools;
 
 import android.util.Log;
 
+import at.aau.moose_scroll.data.Memo;
+
 /**
  * A kinda wrapper class for Log
  */
@@ -9,6 +11,10 @@ public class Logs {
 
     public static void d(String tag, String mssg) {
         Log.d(tag, mssg);
+    }
+
+    public static void d(String tag, Memo memo) {
+        Logs.d(tag, memo.toString());
     }
 
     public static void d(String tag, String name, int... params) {
