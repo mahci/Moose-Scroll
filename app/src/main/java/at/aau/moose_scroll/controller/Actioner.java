@@ -153,7 +153,6 @@ public class Actioner {
 
             // Flick ----------------------------------------------------
             if (mActiveTechnique.equals(FLICK)) {
-//                resetFlick();
                 mContinueScroll = true;
                 mWebView.dispatchTouchEvent(event);
             }
@@ -168,6 +167,10 @@ public class Actioner {
 
             // Same finger is returned
             if (pointerId == mActivePointerId) {
+                mNumMovePoints = 1;
+                final float x = event.getX(activeIndex);
+                final float y = event.getY(activeIndex);
+                mLastTouchPoint = new PointF(x, y);
 
                 // Flick ----------------------------------------------------
                 if (mActiveTechnique.equals(FLICK)) {
@@ -177,28 +180,35 @@ public class Actioner {
                     mWebView.dispatchTouchEvent(newEvent);
                 }
 
-            } else if (event.getX(pointerIndex) < event.getX(activeIndex)) {
-                // If the new finger is to the left
-                final float x = event.getX(pointerIndex);
-                final float y = event.getY(pointerIndex);
-                mLastTouchPoint = new PointF(x, y);
+            } else { // New pointer
+                // If the new pointer is added to the left
+                if (activeIndex != -1 && event.getX(pointerIndex) < event.getX(activeIndex)) {
+                    mNumMovePoints = 1;
+                    final float x = event.getX(pointerIndex);
+                    final float y = event.getY(pointerIndex);
+                    mLastTouchPoint = new PointF(x, y);
 
-                mActivePointerId = event.getPointerId(pointerIndex);
-                mNumMovePoints = 1;
+                    mActivePointerId = event.getPointerId(pointerIndex);
 
-                // Flick ----------------------------------------------------
-                if (mActiveTechnique.equals(FLICK)) {
-                    mContinueScroll = true;
+                    // Flick ----------------------------------------------------
+                    if (mActiveTechnique.equals(FLICK)) {
+                        mContinueScroll = true;
 
-                    final MotionEvent newEvent = getNewEvent(event);
-                    mWebView.dispatchTouchEvent(newEvent);
+                        final MotionEvent newEvent = getNewEvent(event);
+                        mWebView.dispatchTouchEvent(newEvent);
+                    }
                 }
             }
             break;
         }
 
         case MotionEvent.ACTION_MOVE: {
+            Logs.d(TAG, mActivePointerId);
+            Logs.d(TAG, mContinueScroll);
+
             final int activeIndex = event.findPointerIndex(mActivePointerId);
+            if (activeIndex == -1) break;
+
             final float x = event.getX(activeIndex);
             final float y = event.getY(activeIndex);
 
@@ -263,15 +273,9 @@ public class Actioner {
 
             // FLICK ----------------------------------------------------
             if (mActiveTechnique.equals(FLICK)) {
-//                final double dX = x - mLastTouchPoint.x;
-//                final double dY = y - mLastTouchPoint.y;
-//                mLastTouchPoint = new PointF(x, y);
-//
-//                mTotalDistanceX += px2mm(dX);
-//                mTotalDistanceY += px2mm(dY);
-
                 if (mContinueScroll) {
                     final MotionEvent newEvent = getNewEvent(event);
+                    Logs.d(TAG, newEvent);
                     mWebView.dispatchTouchEvent(newEvent);
                 }
 
@@ -290,13 +294,13 @@ public class Actioner {
             // If the left finger left the screen, find the next leftmost
             // IMPORTANT: the left finger still counts in "getPointerCount()"
             if (pointerId == mActivePointerId) {
-                final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
-
-                final float x = event.getX(newPointerIndex);
-                final float y = event.getY(newPointerIndex);
-                mLastTouchPoint = new PointF(x, y);
-
-                mActivePointerId = event.getPointerId(newPointerIndex);
+//                final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
+//
+//                final float x = event.getX(newPointerIndex);
+//                final float y = event.getY(newPointerIndex);
+//                mLastTouchPoint = new PointF(x, y);
+//
+//                mActivePointerId = event.getPointerId(newPointerIndex);
 
                 // RATE-BASED ----------------------------------------------------------
                 if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED)) stopScroll();
@@ -373,6 +377,7 @@ public class Actioner {
                     new MotionEvent.PointerProperties[newPointerCount];
             newProps[0] = new MotionEvent.PointerProperties();
             oldEvent.getPointerProperties(activeIndex, newProps[0]);
+
             final MotionEvent.PointerCoords[] newCoords =
                     new MotionEvent.PointerCoords[newPointerCount];
             newCoords[0] = new MotionEvent.PointerCoords();
