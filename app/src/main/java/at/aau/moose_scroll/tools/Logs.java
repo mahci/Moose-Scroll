@@ -27,6 +27,16 @@ public class Logs {
         }
     }
 
+    public static void d(String tag, int... params) {
+        if (params.length > 0) {
+            StringBuilder sb = new StringBuilder().append(">>");
+            for(int p : params) {
+                sb.append(p).append(" | ");
+            }
+            Log.d(tag, sb.toString());
+        }
+    }
+
     public static void d(String tag, String name, double... params) {
         if (params.length > 0) {
             StringBuilder sb = new StringBuilder().append(">>").append(name).append(": ");

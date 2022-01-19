@@ -15,6 +15,7 @@ public class Consts {
         public final static String SENSITIVITY = "SENSITIVITY";
         public final static String GAIN = "GAIN";
         public final static String DENOM = "DENOM";
+        public final static String COEF = "COEF";
         public final static String EMPTY = "";
     }
 
