@@ -7,6 +7,7 @@ import static android.view.MotionEvent.ACTION_POINTER_UP;
 import static android.view.MotionEvent.ACTION_UP;
 import static android.view.MotionEvent.INVALID_POINTER_ID;
 
+import static at.aau.moose_scroll.data.Consts.TECHNIQUE.DRAG;
 import static at.aau.moose_scroll.data.Consts.TECHNIQUE.FLICK;
 
 import android.annotation.SuppressLint;
@@ -28,7 +29,7 @@ public class Actioner {
     private static Actioner instance; // Singelton instance
 
     // Mode of scrolling
-    private TECHNIQUE mActiveTechnique = FLICK;
+    private TECHNIQUE mActiveTechnique = DRAG;
 
     private final int PPI = 312; // For calculating movement in mm
 
@@ -48,11 +49,11 @@ public class Actioner {
     private boolean mAutoscroll = false;
     private long mTimeLastMoved;
     private boolean mContinueScroll = false;
-    private double THRSH_MM = 2.0; // Threshold to ignore less than
+    private double THRSH_MM = 1.0; // Threshold to ignore less than
 
     // Config
     private int mDragSensitivity = 2; // Count every n ACTION_MOVEs
-    private double mDragGain = 20; // Gain factor for drag
+    private double mDragGain = 5; // Gain factor for drag
     private double mRBGain = 1.5; // Gain factor for rate-based
     private int mRBSensititivity = 1; // Count every n ACTION_MOVEs (rate-based)
     private int mRBDenom = 50; // Denominator in RB's speed formula
@@ -233,7 +234,6 @@ public class Actioner {
                     // Update the last point
                     mLastTouchPoint = new PointF(x, y);
                 }
-
 
             }
             //-----------------------------------------------------------

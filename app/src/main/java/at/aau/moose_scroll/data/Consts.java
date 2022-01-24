@@ -16,7 +16,10 @@ public class Consts {
         public final static String GAIN = "GAIN";
         public final static String DENOM = "DENOM";
         public final static String COEF = "COEF";
-        public final static String EMPTY = "";
+        public final static String LOG = "LOG";
+        public final static String PID = "PID";
+        public final static String BLOCK_TRIAL = "BLOCK_TRIAL";
+        public final static String TSK = "TSK";
     }
 
     public static class INTS {
@@ -28,10 +31,10 @@ public class Consts {
         VERTICAL, HORIZONTAL, TWOD
     }
 
-    public enum SCROLL_MODE {
+    public enum TASK {
         VERTICAL(1), TWO_DIM(2);
         private final int n;
-        SCROLL_MODE(int i) { n = i; }
+        TASK(int i) { n = i; }
     }
 
     public enum TECHNIQUE {
