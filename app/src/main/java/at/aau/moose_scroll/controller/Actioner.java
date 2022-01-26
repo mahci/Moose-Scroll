@@ -53,11 +53,11 @@ public class Actioner {
 
     // Config
     private int mDragSensitivity = 2; // Count every n ACTION_MOVEs
-    private double mDragGain = 5; // Gain factor for drag
+    private double mDragGain = 20; // Gain factor for drag
     private double mRBGain = 1.5; // Gain factor for rate-based
     private int mRBSensititivity = 1; // Count every n ACTION_MOVEs (rate-based)
     private int mRBDenom = 50; // Denominator in RB's speed formula
-    private double mFlickCoef = 0.1; // dX, dY returned from webView * coef -> Desktop
+    private double mFlickCoef = 0.3; // dX, dY returned from webView * coef -> Desktop
 
     // Views
     private WebView mWebView;
@@ -82,11 +82,12 @@ public class Actioner {
         Logs.d(TAG, memo);
         switch (memo.getMode()) {
         case STRINGS.TECHNIQUE: {
-            mActiveTechnique = TECHNIQUE.values()[memo.getValue1Int()];
+            mActiveTechnique = TECHNIQUE.get(memo.getValue1Int());
             Logs.d(TAG, "New Technique", mActiveTechnique.toString());
 
             break;
         }
+
         case STRINGS.SENSITIVITY: {
             if (mActiveTechnique.equals(TECHNIQUE.DRAG))
                 mDragSensitivity = memo.getValue1Double();
@@ -95,6 +96,7 @@ public class Actioner {
 
             break;
         }
+
         case STRINGS.GAIN: {
             if (mActiveTechnique.equals(TECHNIQUE.DRAG))
                 mDragGain = memo.getValue1Double();
@@ -103,10 +105,12 @@ public class Actioner {
 
             break;
         }
+
         case STRINGS.DENOM: {
             mRBDenom = memo.getValue1Int();
             break;
         }
+
         case STRINGS.COEF: {
             mFlickCoef = memo.getValue1Double();
             break;

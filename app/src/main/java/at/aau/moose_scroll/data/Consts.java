@@ -27,19 +27,21 @@ public class Consts {
         public static final int SHOW_DLG = 1;
     }
 
-    public enum MODE {
-        VERTICAL, HORIZONTAL, TWOD
-    }
-
     public enum TASK {
-        VERTICAL(1), TWO_DIM(2);
-        private final int n;
-        TASK(int i) { n = i; }
+        VERTICAL, TWO_DIM;
+        private static final TASK[] values = values();
+        public static TASK get(int ord) {
+            if (ord < values.length) return values[ord];
+            else return values[0];
+        }
     }
 
     public enum TECHNIQUE {
-        DRAG(1), RATE_BASED(2), FLICK(3), MOUSE(4);
-        private final int n;
-        TECHNIQUE(int i) { n = i; }
+        DRAG, RATE_BASED, FLICK, MOUSE;
+        private static final TECHNIQUE[] values = values();
+        public static TECHNIQUE get(int ord) {
+            if (ord < values.length) return values[ord];
+            else return values[0];
+        }
     }
 }
