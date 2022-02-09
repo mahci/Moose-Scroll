@@ -93,6 +93,10 @@ public class Memo {
 
     }
 
+    public String getValue1Str() {
+        return value1;
+    }
+
     /**
      * Convert and return the value 2
      * @return Int value 2
@@ -104,6 +108,10 @@ public class Memo {
             return 0;
         }
 
+    }
+
+    public String getValue2Str() {
+        return value2;
     }
 
     /**

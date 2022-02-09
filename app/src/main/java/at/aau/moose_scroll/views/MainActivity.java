@@ -206,7 +206,7 @@ public class MainActivity extends AppCompatActivity {
         @SuppressLint("ClickableViewAccessibility")
         @Override
         public boolean onTouchEvent(MotionEvent event) {
-            Actioner.get().scroll(event, 0);
+            Actioner.get().scroll(event);
             return super.onTouchEvent(event);
         }
     }

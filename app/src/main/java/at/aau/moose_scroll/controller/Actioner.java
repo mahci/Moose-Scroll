@@ -21,6 +21,7 @@ import at.aau.moose_scroll.data.Consts.*;
 import at.aau.moose_scroll.data.Memo;
 import at.aau.moose_scroll.tools.Logs;
 
+import static at.aau.moose_scroll.controller.Logger.*;
 
 public class Actioner {
     private final String NAME = "Actioner/";
@@ -81,10 +82,8 @@ public class Actioner {
         final String TAG = NAME + "config";
         Logs.d(TAG, memo);
         switch (memo.getMode()) {
-        case STRINGS.TECHNIQUE: {
+        case STRINGS.TECH: {
             mActiveTechnique = TECHNIQUE.get(memo.getValue1Int());
-            Logs.d(TAG, "New Technique", mActiveTechnique.toString());
-
             break;
         }
 
@@ -140,9 +139,8 @@ public class Actioner {
     /**
      * Perform the action
      * @param event MotionEvent to process and perform
-     * @param mid Unique id for the event
      */
-    public void scroll(MotionEvent event, int mid) {
+    public void scroll(MotionEvent event) {
         String TAG = NAME + "scroll";
 
         switch (event.getActionMasked()) {
@@ -160,6 +158,9 @@ public class Actioner {
             if (mActiveTechnique.equals(FLICK)) {
                 mContinueScroll = true;
                 mWebView.dispatchTouchEvent(event);
+
+                // Log the event
+                Logger.get().logMotionEventInfo(new MotionEventInfo(event));
             }
 
             break;
@@ -183,6 +184,9 @@ public class Actioner {
 
                     final MotionEvent newEvent = getNewEvent(event);
                     mWebView.dispatchTouchEvent(newEvent);
+
+                    // Log the event
+                    Logger.get().logMotionEventInfo(new MotionEventInfo(event));
                 }
 
             } else { // New pointer
@@ -201,6 +205,9 @@ public class Actioner {
 
                         final MotionEvent newEvent = getNewEvent(event);
                         mWebView.dispatchTouchEvent(newEvent);
+
+                        // Log the event
+                        Logger.get().logMotionEventInfo(new MotionEventInfo(event));
                     }
                 }
             }
@@ -281,6 +288,9 @@ public class Actioner {
                     final MotionEvent newEvent = getNewEvent(event);
                     Logs.d(TAG, newEvent);
                     mWebView.dispatchTouchEvent(newEvent);
+
+                    // Log the event
+                    Logger.get().logMotionEventInfo(new MotionEventInfo(event));
                 }
 
             }
@@ -315,6 +325,9 @@ public class Actioner {
                     mWebView.dispatchTouchEvent(newEvent);
 
                     mContinueScroll = false;
+
+                    // Log the event
+                    Logger.get().logMotionEventInfo(new MotionEventInfo(event));
                 }
 
             }
@@ -330,6 +343,9 @@ public class Actioner {
             if (mActiveTechnique.equals(FLICK)) {
                 mWebView.dispatchTouchEvent(event);
                 mContinueScroll = false;
+
+                // Log the event
+                Logger.get().logMotionEventInfo(new MotionEventInfo(event));
             }
 
             break;

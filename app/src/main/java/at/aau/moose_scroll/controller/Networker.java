@@ -137,6 +137,10 @@ public class Networker {
                                 Actioner.get().config(memo);
                                 break;
                             }
+
+                            case LOG: {
+                                Logger.get().setLogInfo(memo);
+                            }
                         }
 
                     } else {
