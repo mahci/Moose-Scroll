@@ -135,6 +135,9 @@ public class Networker {
 
                             case LOG: {
                                 Logger.get().setLogInfo(memo);
+
+                                // Reset webView position
+                                Actioner.get().webViewManualScrollTo(100000, 100000);
                             }
                         }
 
