@@ -1,7 +1,7 @@
-package at.aau.proto_moose.controller;
+package at.aau.moose_scroll.controller;
 
-import static at.aau.proto_moose.data.Consts.STRINGS.*;
-import static at.aau.proto_moose.data.Consts.INTS.*;
+import static at.aau.moose_scroll.data.Consts.STRINGS.*;
+import static at.aau.moose_scroll.data.Consts.INTS.*;
 
 import android.os.Handler;
 import android.os.Message;
@@ -16,11 +16,13 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ConnectException;
 import java.net.Socket;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import at.aau.proto_moose.data.Memo;
-import at.aau.proto_moose.tools.Logs;
+import at.aau.moose_scroll.data.Memo;
+import at.aau.moose_scroll.tools.Logs;
 import io.reactivex.rxjava3.core.Observable;
 
 @SuppressWarnings("ALL")
@@ -28,19 +30,22 @@ public class Networker {
     private String NAME = "Networker/";
     //-------------------------------------------------------------------------------
     private final String DESKTOP_IP = "192.168.2.1";
+//    private final String DESKTOP_IP = "192.168.178.34";
     private final int DESKTOP_PORT = 8000;
     private final long SUCCESS_VIBRATE_DUR = 500; // ms
     private final long CONN_THREAD_SLEEP_DUR = 2 * 1000; // ms
 
     private static Networker instance;
 
-    private Socket socket;
-    private Observable<Object> incomningObservable; // Observing the incoming mssg.
-    private ExecutorService executor;
-    private PrintWriter outPW;
-    private BufferedReader inBR;
-    private Vibrator vibrator;
-    private Handler mainThreadHandler;
+    private Socket mSocket;
+    private Observable<Object> mIncomningObservable; // Observing the incoming mssg.
+    private ExecutorService mExecutor;
+    private PrintWriter mOutPW;
+    private BufferedReader mInBR;
+    private Vibrator mVibrator;
+    private Handler mMainThreadHandler;
+
+    private Memo mKeepAliveMssg = new Memo(CONNECTION, KEEP_ALIVE, "", "");
 
     // -------------------------------------------------------------------------------
 
@@ -51,9 +56,9 @@ public class Networker {
         @Override
         public void run() {
             Log.d(TAG, "Connecting to desktop...");
-            while (socket == null) {
+            while (mSocket == null) {
                 try {
-                    socket = new Socket(DESKTOP_IP, DESKTOP_PORT);
+                    mSocket = new Socket(DESKTOP_IP, DESKTOP_PORT);
 
                     Log.d(TAG, "Connection successful!");
                     vibrate(SUCCESS_VIBRATE_DUR);
@@ -61,18 +66,18 @@ public class Networker {
                     // Start the main activity part
                     Message closeDialogMssg = new Message();
                     closeDialogMssg.what = CLOSE_DLG;
-                    mainThreadHandler.sendMessage(closeDialogMssg);
+                    mMainThreadHandler.sendMessage(closeDialogMssg);
 
                     // Create buffers
-                    inBR = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    outPW = new PrintWriter(new BufferedWriter(
-                            new OutputStreamWriter(socket.getOutputStream())),true);
+                    mInBR = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
+                    mOutPW = new PrintWriter(new BufferedWriter(
+                            new OutputStreamWriter(mSocket.getOutputStream())),true);
 
                     // Send intro
                     sendMemo(new Memo(INTRO, INTRO, MOOSE, ""));
 
                     // Start receiving
-                    executor.execute(new InRunnable());
+                    mExecutor.execute(new InRunnable());
 
                 } catch (ConnectException e) { // Server offline
                     Log.d(TAG, "Server not responding. Trying again in 2 sec.");
@@ -101,9 +106,9 @@ public class Networker {
 
         @Override
         public void run() {
-            if (message != null && outPW != null) {
-                outPW.println(message);
-                outPW.flush();
+            if (message != null && mOutPW != null) {
+                mOutPW.println(message);
+                mOutPW.flush();
                 Log.d(TAG, message + " sent");
             } else {
                 Log.d(TAG, "Problem in sending messages");
@@ -119,12 +124,10 @@ public class Networker {
         public void run() {
             Log.d(TAG, "Reading from server...");
             String mssg;
-            while (inBR != null) {
+            while (mInBR != null) {
                 try {
-                    mssg = inBR.readLine();
-                    if (mssg != null) { // Connection is lost
+                    if ((mssg = mInBR.readLine()) != null) {
                         Log.d(TAG, "Message: " + mssg);
-
                         Memo memo = Memo.valueOf(mssg);
                         Logs.d(TAG, "Action: " + memo.getAction());
                         switch (memo.getAction()) {
@@ -141,7 +144,7 @@ public class Networker {
                             }
                         }
 
-                    } else {
+                    } else { // Connection is lost
                         resetConnection();
                         return;
                     }
@@ -170,23 +173,40 @@ public class Networker {
      */
     private Networker() {
         // Init the ExecuterService for running the threads
-        executor = Executors.newCachedThreadPool();
+        mExecutor = Executors.newCachedThreadPool();
     }
 
     /**
-     * Connect to
+     * Connect to the desktop
      */
     public void connect() {
         String TAG = NAME + "connect";
 
-        executor.execute(new ConnectRunnable());
+        mExecutor.execute(new ConnectRunnable());
     }
 
+    /**
+     * Reset the connection
+     */
     public void resetConnection() {
-        socket = null;
-        outPW = null;
-        inBR = null;
+        mSocket = null;
+        mOutPW = null;
+        mInBR = null;
         connect();
+    }
+
+    /**
+     * Start the keep alive Timer
+     * to send a KA message to the server every minute
+     */
+    private void keepAlive() {
+        Timer keepAliveTimer = new Timer();
+        keepAliveTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                sendMemo(mKeepAliveMssg);
+            }
+        }, 0, 60 * 1000);
     }
 
     /**
@@ -195,7 +215,7 @@ public class Networker {
      */
     public void sendMemo(Memo memo) {
         final String TAG = NAME + "sendMemmo";
-        executor.execute(new OutRunnable(memo.toString()));
+        mExecutor.execute(new OutRunnable(memo.toString()));
     }
 
 
@@ -204,7 +224,7 @@ public class Networker {
      * @param millisec time in milliseconds
      */
     private void vibrate(long millisec) {
-        if (vibrator != null) vibrator.vibrate(millisec);
+        if (mVibrator != null) mVibrator.vibrate(millisec);
     }
 
     /**
@@ -212,15 +232,15 @@ public class Networker {
      * @param mainHandler Handler to MainActivity
      */
     public void setMainHandler(Handler mainHandler) {
-        mainThreadHandler = mainHandler;
+        mMainThreadHandler = mainHandler;
     }
 
     /**
      * Set the vibrator (called from the MainActivity)
      * @param vib Vibrator from system
      */
-    public void setVibrator(Vibrator vib) {
-        vibrator = vib;
+    public void setmVibrator(Vibrator vib) {
+        mVibrator = vib;
     }
 
 
