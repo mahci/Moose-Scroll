@@ -59,7 +59,7 @@ public class Actioner {
     private double mRBGain = 1.5; // Gain factor for rate-based
     private int mRBSensititivity = 1; // Count every n ACTION_MOVEs (rate-based)
     private int mRBDenom = 50; // Denominator in RB's speed formula
-    private double mFlickCoef = 0.3; // dX, dY returned from webView * coef -> Desktop
+    private double mFlickCoef = 0.5; // dX, dY returned from webView * coef -> Desktop
 
     // Views
     private WebView mWebView;

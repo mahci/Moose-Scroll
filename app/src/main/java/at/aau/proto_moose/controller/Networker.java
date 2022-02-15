@@ -45,7 +45,7 @@ public class Networker {
     private Vibrator mVibrator;
     private Handler mMainThreadHandler;
 
-    private Memo mKeepAliveMssg = new Memo(CONNECTION, KEEP_ALIVE, "", "");
+    private Memo mKeepAliveMssg = new Memo(CONNECTION, KEEP_ALIVE, "-", "-");
 
     // -------------------------------------------------------------------------------
 
@@ -74,7 +74,10 @@ public class Networker {
                             new OutputStreamWriter(mSocket.getOutputStream())),true);
 
                     // Send intro
-                    sendMemo(new Memo(INTRO, INTRO, MOOSE, ""));
+                    sendMemo(new Memo(CONNECTION, INTRO, MOOSE, "-"));
+
+                    // Start Keep Alive timer
+                    keepAlive();
 
                     // Start receiving
                     mExecutor.execute(new InRunnable());
