@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Moose-scroll</string>
+    <string name="app_name">Proto-Moose</string>
     <string name="admin_receiver_status">Admin</string>
     <string name="admin_receiver_status_enabled">Admin Enabled</string>
     <string name="admin_receiver_status_disable_warning">Disable Warning</string>

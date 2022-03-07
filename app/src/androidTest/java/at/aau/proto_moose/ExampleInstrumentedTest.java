@@ -1,4 +1,4 @@
-package at.aau.moose_scroll;
+package at.aau.proto_moose;
 
 import android.content.Context;
 import androidx.test.platform.app.InstrumentationRegistry;

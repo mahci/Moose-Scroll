@@ -1,7 +1,7 @@
-package at.aau.moose_scroll.controller;
+package at.aau.proto_moose.controller;
 
-import static at.aau.moose_scroll.data.Consts.STRINGS.*;
-import static at.aau.moose_scroll.data.Consts.INTS.*;
+import static at.aau.proto_moose.data.Consts.STRINGS.*;
+import static at.aau.proto_moose.data.Consts.INTS.*;
 
 import android.os.Handler;
 import android.os.Message;
@@ -19,20 +19,15 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import at.aau.moose_scroll.data.Consts;
-import at.aau.moose_scroll.data.Memo;
-import at.aau.moose_scroll.tools.Logs;
-import at.aau.moose_scroll.views.MainActivity;
+import at.aau.proto_moose.data.Memo;
+import at.aau.proto_moose.tools.Logs;
 import io.reactivex.rxjava3.core.Observable;
-
-import at.aau.moose_scroll.data.Consts.STRINGS.*;
 
 @SuppressWarnings("ALL")
 public class Networker {
     private String NAME = "Networker/";
     //-------------------------------------------------------------------------------
     private final String DESKTOP_IP = "192.168.2.1";
-//    private final String DESKTOP_IP = "192.168.178.34";
     private final int DESKTOP_PORT = 8000;
     private final long SUCCESS_VIBRATE_DUR = 500; // ms
     private final long CONN_THREAD_SLEEP_DUR = 2 * 1000; // ms

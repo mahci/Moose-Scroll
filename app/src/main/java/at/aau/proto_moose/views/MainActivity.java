@@ -1,4 +1,4 @@
-package at.aau.moose_scroll.views;
+package at.aau.proto_moose.views;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
@@ -23,38 +23,31 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
-import android.webkit.WebView;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import at.aau.moose_scroll.R;
-import at.aau.moose_scroll.controller.Actioner;
-import at.aau.moose_scroll.controller.AdminManager;
-import at.aau.moose_scroll.controller.Networker;
-import at.aau.moose_scroll.data.Consts.*;
-import at.aau.moose_scroll.tools.Logs;
+import at.aau.proto_moose.R;
+import at.aau.proto_moose.controller.Actioner;
+import at.aau.proto_moose.controller.AdminManager;
+import at.aau.proto_moose.controller.Networker;
+import at.aau.proto_moose.data.Consts.*;
 
 public class MainActivity extends AppCompatActivity {
-
     final static String TAG = "MainActivity/";
-    // -------------------------------------------------------------------------------
 
     static boolean isAdmin = false; // is the app admin?
     static final int OVERLAY_PERMISSION_CODE = 2; // code for overlay permission intent
 
-    private ExecutorService executorService; // for running threads
     private AlertDialog.Builder dialogBuilder; // for creating dialogs
     private AlertDialog dialog; // dialog for everyting!
-    // -------------------------------------------------------------------------------
 
     // Main Handler
     @SuppressLint("HandlerLeak")
-    private Handler mainHandler = new Handler() {
+    private final Handler mainHandler = new Handler() {
         @Override
         public void handleMessage(@NonNull Message mssg) {
             Log.d(TAG, "handleMessage: " + mssg.what);
@@ -62,12 +55,9 @@ public class MainActivity extends AppCompatActivity {
                 if (dialog != null) dialog.dismiss();
                 drawUI();
             }
-
-//            if (mssg.what == INTS.SHOW_DLG) {
-//                showDialog("Connecting to desktop...");
-//            }
         }
     };
+
     // -------------------------------------------------------------------------------
 
     @Override
@@ -76,12 +66,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Set webView in Actioner
-        String pagePath = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) + "/index.html";
-        Actioner.get().setWebView(findViewById(R.id.webView), pagePath);
-
         // Setting
-        executorService = Executors.newSingleThreadExecutor();
         dialogBuilder = new AlertDialog.Builder(this);
         Networker.get().setVibrator((Vibrator) getSystemService(VIBRATOR_SERVICE));
         Networker.get().setMainHandler(mainHandler);
@@ -89,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
         // Init
         checkAdmin();
 
+        // Connecting to desktop...
         showDialog("Connecting to desktop...");
         Networker.get().connect();
     }
@@ -203,10 +189,12 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
 
+        //-------------- MAIN PART! --------------------------
         @SuppressLint("ClickableViewAccessibility")
         @Override
         public boolean onTouchEvent(MotionEvent event) {
-            Actioner.get().scroll(event);
+            Actioner.get().act(event); // Send the event to Actioner to process
+
             return super.onTouchEvent(event);
         }
     }
@@ -224,29 +212,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return result;
-    }
-
-
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        int action = event.getAction();
-        int keyCode = event.getKeyCode();
-//        switch (keyCode) {
-//        case KeyEvent.KEYCODE_VOLUME_UP:
-//            if (action == KeyEvent.ACTION_DOWN) {
-//                Actioner.get().setmActiveTechnique(TECHNIQUE.RATE_BASED);
-//            }
-//            return true;
-//        case KeyEvent.KEYCODE_VOLUME_DOWN:
-//            if (action == KeyEvent.ACTION_DOWN) {
-//                Actioner.get().setmActiveTechnique(TECHNIQUE.DRAG);
-//            }
-//            return true;
-//        default:
-//            return super.dispatchKeyEvent(event);
-//        }
-
-        return false;
     }
 
 }

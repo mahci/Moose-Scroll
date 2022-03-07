@@ -1,12 +1,12 @@
-package at.aau.moose_scroll.controller;
+package at.aau.proto_moose.controller;
 
-import static at.aau.moose_scroll.data.Consts.STRINGS.BLOCK;
-import static at.aau.moose_scroll.data.Consts.STRINGS.END;
-import static at.aau.moose_scroll.data.Consts.STRINGS.EXP_ID;
-import static at.aau.moose_scroll.data.Consts.STRINGS.SP;
-import static at.aau.moose_scroll.data.Consts.STRINGS.TECH;
-import static at.aau.moose_scroll.data.Consts.STRINGS.TRIAL;
-import static at.aau.moose_scroll.data.Consts.STRINGS.TSK;
+import static at.aau.proto_moose.data.Consts.STRINGS.BLOCK;
+import static at.aau.proto_moose.data.Consts.STRINGS.END;
+import static at.aau.proto_moose.data.Consts.STRINGS.EXP_ID;
+import static at.aau.proto_moose.data.Consts.STRINGS.SP;
+import static at.aau.proto_moose.data.Consts.STRINGS.TECH;
+import static at.aau.proto_moose.data.Consts.STRINGS.TRIAL;
+import static at.aau.proto_moose.data.Consts.STRINGS.TSK;
 
 import android.annotation.SuppressLint;
 import android.os.Environment;
@@ -19,24 +19,24 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import at.aau.moose_scroll.data.Consts;
-import at.aau.moose_scroll.data.Memo;
-import at.aau.moose_scroll.tools.Logs;
+import at.aau.proto_moose.data.Consts;
+import at.aau.proto_moose.data.Memo;
+import at.aau.proto_moose.tools.Logs;
 
 import static android.view.MotionEvent.*;
-import static at.aau.moose_scroll.data.Consts.*;
+import static at.aau.proto_moose.data.Consts.*;
 
 public class Logger {
     private final static String NAME = "Logger/";
-    // -------------------------------------------------------------------------------------------
+
     private static Logger self;
 
     private static String mLogDirectory; // Main folder for logs
 
-    private GeneralInfo mGenInfo = new GeneralInfo();
-
     private String mMotionEventLogPath;
     private PrintWriter mMotionEventLogPW;
+
+    private GeneralInfo mGenInfo = new GeneralInfo();
 
     // -------------------------------------------------------------------------------------------
     public static Logger get() {
@@ -72,7 +72,7 @@ public class Logger {
     public void setLogInfo(Memo memo) {
         switch (memo.getMode()) {
             case EXP_ID: {
-                logExperimentStart(memo.getValue1Str());
+                logExperimentStart(memo.getValue1());
             }
 
             case TECH + "_" + TSK: {

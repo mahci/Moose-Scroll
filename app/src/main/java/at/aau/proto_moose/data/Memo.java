@@ -1,12 +1,14 @@
-package at.aau.moose_scroll.data;
+package at.aau.proto_moose.data;
 
-import static at.aau.moose_scroll.data.Consts.STRINGS.*;
+import static at.aau.proto_moose.data.Consts.STRINGS.*;
 
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import at.aau.moose_scroll.tools.Logs;
+import java.util.Arrays;
+
+import at.aau.proto_moose.tools.Logs;
 
 public class Memo {
     private static final String NAME = "Memo/";
@@ -16,12 +18,10 @@ public class Memo {
     private String value1;
     private String value2;
 
-    public static Memo RB_STOP_MEMO = new Memo(SCROLL, Consts.TECHNIQUE.RATE_BASED, STOP, STOP);
-
     /**
      * Constructor
-     * @param act Action Mostly "SCROLL"
-     * @param md Mode DRAG or RT
+     * @param act Action (e.g. SCROLL)
+     * @param md Mode (e.g. DRAG)
      * @param v1 String value1
      * @param v2 String value2
      */
@@ -29,25 +29,58 @@ public class Memo {
         action = act;
         mode = md;
         value1 = v1;
-        value2 = v2;
-    }
-
-    public Memo(String act, Consts.TECHNIQUE tech, String v1, String v2) {
-        this(act, tech.toString(), v1, v2);
-    }
-
-    public Memo(String act, Consts.TECHNIQUE tech, double v1, double v2) {
-        this(act, tech.toString(), v1, v2);
+        value1 = v2;
     }
 
     /**
      * Constructor
-     * @param act Action Mostly "SCROLL"
-     * @param md Mode DRAG or RT
+     * @param act Action (e.g. SCROLL)
+     * @param md Mode (e.g. DRAG)
      * @param v1 Double value Movement along X
      * @param v2 Double value Movement along Y
      */
     public Memo(String act, String md, double v1, double v2) {
+        action = act;
+        mode = md;
+        value1 = String.valueOf(v1);
+        value2 = String.valueOf(v2);
+    }
+
+    /**
+     * Constructor
+     * @param act Action (e.g. SCROLL)
+     * @param md Mode (e.g. DRAG)
+     * @param v1 Int value 1
+     */
+    public Memo(String act, String md, Object v1) {
+        action = act;
+        mode = md;
+        value1 = String.valueOf(v1);
+        value2 = "-";
+    }
+
+    /**
+     * Constructor
+     * @param act Action (e.g. SCROLL)
+     * @param md Mode (e.g. DRAG)
+     * @param v1 Int value 1
+     * @param v2 Int value 2
+     */
+    public Memo(String act, String md, int v1, int v2) {
+        action = act;
+        mode = md;
+        value1 = String.valueOf(v1);
+        value2 = String.valueOf(v2);
+    }
+
+    /**
+     * Constructor
+     * @param act Action (e.g. SCROLL)
+     * @param md Mode (e.g. DRAG)
+     * @param v1 Int value 1
+     * @param v2 Int value 2
+     */
+    public Memo(String act, String md, Object v1, Object v2) {
         action = act;
         mode = md;
         value1 = String.valueOf(v1);
@@ -81,8 +114,16 @@ public class Memo {
     }
 
     /**
-     * Convert and return the value 1
-     * @return Int value 1
+     * Get the first value
+     * @return String
+     */
+    public String getValue1() {
+        return value1;
+    }
+
+    /**
+     * Convert and return the X value
+     * @return Int X value
      */
     public int getValue1Int() {
         try {
@@ -90,16 +131,27 @@ public class Memo {
         } catch (NumberFormatException e) {
             return 0;
         }
-
     }
 
-    public String getValue1Str() {
-        return value1;
+    public double getValue1Double() {
+        try {
+            return Double.parseDouble(value1);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    public double getValue2Double() {
+        try {
+            return Double.parseDouble(value2);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     /**
-     * Convert and return the value 2
-     * @return Int value 2
+     * Convert and return the value
+     * @return Int Y Value
      */
     public int getValue2Int() {
         try {
@@ -107,39 +159,11 @@ public class Memo {
         } catch (NumberFormatException e) {
             return 0;
         }
-
     }
 
-    public String getValue2Str() {
-        return value2;
+    public boolean isStopMemo() {
+        return getValue1().equals(STOP);
     }
-
-    /**
-     * Convert and return the value 1
-     * @return Double value 1
-     */
-    public int getValue1Double() {
-        try {
-            return (int) Double.parseDouble(value1);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-
-    }
-
-    /**
-     * Convert and return the value 2
-     * @return Double value 2
-     */
-    public int getValue2Double() {
-        try {
-            return (int) Double.parseDouble(value2);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-
-    }
-
 
     /**
      * Get the Memo from String
@@ -152,14 +176,14 @@ public class Memo {
         Memo result = new Memo();
         if (mssg != null) {
             String[] parts = mssg.split(SP);
-            Logs.d(TAG, parts.length);
+            Logs.d(TAG, Arrays.toString(parts));
             if (parts.length == 4) {
                 result.action = parts[0];
                 result.mode = parts[1];
                 result.value1 = parts[2];
                 result.value2 = parts[3];
             } else {
-                Log.d(TAG, "Problem in parsing the memo!");
+                Logs.d(TAG, "Problem in parsing the memo!");
             }
         }
 
@@ -170,7 +194,6 @@ public class Memo {
      * Get the String equivaluent
      * @return String
      */
-    @NonNull
     @Override
     public String toString() {
         return action + SP + mode + SP + value1 + SP + value2;

@@ -1,4 +1,4 @@
-package at.aau.moose_scroll.controller;
+package at.aau.proto_moose.controller;
 
 import android.app.admin.DeviceAdminReceiver;
 import android.content.Context;
@@ -7,8 +7,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
-import at.aau.moose_scroll.R;
-import at.aau.moose_scroll.views.MainActivity;
+import at.aau.proto_moose.R;
+import at.aau.proto_moose.views.MainActivity;
 
 public class AdminManager extends DeviceAdminReceiver {
 
