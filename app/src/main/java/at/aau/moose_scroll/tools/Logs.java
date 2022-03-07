@@ -1,6 +1,4 @@
-package at.aau.proto_moose.tools;
-
-import android.util.Log;
+package at.aau.moose_scroll.tools;
 
 /**
  * A kinda wrapper class for Log

@@ -1,12 +1,12 @@
-package at.aau.proto_moose.controller;
+package at.aau.moose_scroll.controller;
 
-import static at.aau.proto_moose.data.Consts.STRINGS.BLOCK;
-import static at.aau.proto_moose.data.Consts.STRINGS.END;
-import static at.aau.proto_moose.data.Consts.STRINGS.EXP_ID;
-import static at.aau.proto_moose.data.Consts.STRINGS.SP;
-import static at.aau.proto_moose.data.Consts.STRINGS.TECH;
-import static at.aau.proto_moose.data.Consts.STRINGS.TRIAL;
-import static at.aau.proto_moose.data.Consts.STRINGS.TSK;
+import static at.aau.moose_scroll.data.Consts.STRINGS.BLOCK;
+import static at.aau.moose_scroll.data.Consts.STRINGS.END;
+import static at.aau.moose_scroll.data.Consts.STRINGS.EXP_ID;
+import static at.aau.moose_scroll.data.Consts.STRINGS.SP;
+import static at.aau.moose_scroll.data.Consts.STRINGS.TECH;
+import static at.aau.moose_scroll.data.Consts.STRINGS.TRIAL;
+import static at.aau.moose_scroll.data.Consts.STRINGS.TSK;
 
 import android.annotation.SuppressLint;
 import android.os.Environment;
@@ -19,12 +19,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import at.aau.proto_moose.data.Consts;
-import at.aau.proto_moose.data.Memo;
-import at.aau.proto_moose.tools.Logs;
+import at.aau.moose_scroll.data.Consts;
+import at.aau.moose_scroll.data.Memo;
+import at.aau.moose_scroll.tools.Logs;
 
 import static android.view.MotionEvent.*;
-import static at.aau.proto_moose.data.Consts.*;
+import static at.aau.moose_scroll.data.Consts.*;
 
 public class Logger {
     private final static String NAME = "Logger/";

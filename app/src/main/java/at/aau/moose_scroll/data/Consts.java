@@ -1,4 +1,4 @@
-package at.aau.proto_moose.data;
+package at.aau.moose_scroll.data;
 
 public class Consts {
 

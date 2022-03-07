@@ -7,8 +7,7 @@ import static android.view.MotionEvent.ACTION_POINTER_UP;
 import static android.view.MotionEvent.ACTION_UP;
 import static android.view.MotionEvent.INVALID_POINTER_ID;
 
-import static at.aau.moose_scroll.data.Consts.TECHNIQUE.DRAG;
-import static at.aau.moose_scroll.data.Consts.TECHNIQUE.FLICK;
+import static at.aau.moose_scroll.data.Consts.TECHNIQUE.*;
 
 import android.annotation.SuppressLint;
 import android.graphics.PointF;
@@ -30,7 +29,7 @@ public class Actioner {
     private static Actioner instance; // Singelton instance
 
     // Mode of scrolling
-    private TECHNIQUE mActiveTechnique = DRAG;
+    private TECHNIQUE mActiveTechnique = FLICK;
 
     private final int PPI = 312; // For calculating movement in mm
 
@@ -88,23 +87,23 @@ public class Actioner {
             break;
         }
 
-        case STRINGS.SENSITIVITY: {
-            if (mActiveTechnique.equals(TECHNIQUE.DRAG))
-                mDragSensitivity = memo.getValue1Double();
-            if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED))
-                mRBSensititivity = memo.getValue1Double();
-
-            break;
-        }
-
-        case STRINGS.GAIN: {
-            if (mActiveTechnique.equals(TECHNIQUE.DRAG))
-                mDragGain = memo.getValue1Double();
-            if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED))
-                mRBGain = memo.getValue1Double();
-
-            break;
-        }
+//        case STRINGS.SENSITIVITY: {
+//            if (mActiveTechnique.equals(TECHNIQUE.DRAG))
+//                mDragSensitivity = memo.getValue1Double();
+//            if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED))
+//                mRBSensititivity = memo.getValue1Double();
+//
+//            break;
+//        }
+//
+//        case STRINGS.GAIN: {
+//            if (mActiveTechnique.equals(TECHNIQUE.DRAG))
+//                mDragGain = memo.getValue1Double();
+//            if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED))
+//                mRBGain = memo.getValue1Double();
+//
+//            break;
+//        }
 
         case STRINGS.DENOM: {
             mRBDenom = memo.getValue1Int();
@@ -190,7 +189,7 @@ public class Actioner {
                 final float y = event.getY(activeIndex);
                 mLastTouchPoint = new PointF(x, y);
 
-                // Flick ----------------------------------------------------
+                // Flick ---------------------- kmnb /.وؤسیسشطشس ز ------------------------------
                 if (mActiveTechnique.equals(FLICK)) {
                     mContinueScroll = true;
 
@@ -382,7 +381,7 @@ public class Actioner {
                 final double dY = (scrollY - oldScrollY) * mFlickCoef * (-1);
                 final double dX = (scrollX - oldScrollX) * mFlickCoef * (-1);
 
-                Networker.get().sendMemo(new Memo(STRINGS.SCROLL, FLICK, dY, dX));
+                Networker.get().sendMemo(new Memo(STRINGS.SCROLL, FLICK.toString(), dY, dX));
             }
         }
     }
