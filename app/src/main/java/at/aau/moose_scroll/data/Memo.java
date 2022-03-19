@@ -4,6 +4,7 @@ import static at.aau.moose_scroll.data.Consts.STRINGS.*;
 
 import java.util.Arrays;
 
+import at.aau.moose_scroll.experiment.Experiment;
 import at.aau.moose_scroll.tools.Logs;
 
 public class Memo {
@@ -14,7 +15,7 @@ public class Memo {
     private String value1;
     private String value2;
 
-    public static Memo RB_STOP_MEMO = new Memo(SCROLL, Consts.TECHNIQUE.RATE_BASED, STOP, STOP);
+//    public static Memo RB_STOP_MEMO = new Memo(SCROLL, Experiment.TECHNIQUE.RATE_BASED, STOP, STOP);
 
     /**
      * Constructor
@@ -27,7 +28,7 @@ public class Memo {
         action = act;
         mode = md;
         value1 = v1;
-        value1 = v2;
+        value2 = v2;
     }
 
     /**
@@ -44,7 +45,14 @@ public class Memo {
         value2 = String.valueOf(v2);
     }
 
-    public Memo(String act, Consts.TECHNIQUE tech, String v1, String v2) {
+    /**
+     * Constructor
+     * @param act Action (e.g. SCROLL)
+     * @param tech TECHNIQUE Mode (e.g. DRAG)
+     * @param v1 Double value Movement along X
+     * @param v2 Double value Movement along Y
+     */
+    public Memo(String act, Experiment.TECHNIQUE tech, double v1, double v2) {
         this(act, tech.toString(), v1, v2);
     }
 
@@ -119,8 +127,16 @@ public class Memo {
      * Get the first value
      * @return String
      */
-    public String getValue1() {
+    public String getValue1Str() {
         return value1;
+    }
+
+    /**
+     * Get the second value
+     * @return String
+     */
+    public String getValue2Str() {
+        return value2;
     }
 
     /**
@@ -164,7 +180,7 @@ public class Memo {
     }
 
     public boolean isStopMemo() {
-        return getValue1().equals(STOP);
+        return getValue1Str().equals(STOP);
     }
 
     /**
@@ -172,12 +188,12 @@ public class Memo {
      * @param mssg String
      * @return Memo
      */
-    public static Memo valueOf(String mssg) {
+    public static Memo fromString(String mssg) {
         String TAG = NAME + "valueOf";
 
         Memo result = new Memo();
         if (mssg != null) {
-            String[] parts = mssg.split(SP);
+            String[] parts = mssg.split(MEMOSP);
             Logs.d(TAG, Arrays.toString(parts));
             if (parts.length == 4) {
                 result.action = parts[0];
@@ -185,7 +201,7 @@ public class Memo {
                 result.value1 = parts[2];
                 result.value2 = parts[3];
             } else {
-                Logs.d(TAG, "Problem in parsing the memo!");
+                Logs.d(TAG, "Problem in parsing the Memo!");
             }
         }
 
@@ -198,6 +214,6 @@ public class Memo {
      */
     @Override
     public String toString() {
-        return action + SP + mode + SP + value1 + SP + value2;
+        return action + MEMOSP + mode + MEMOSP + value1 + MEMOSP + value2;
     }
 }

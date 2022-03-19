@@ -11,7 +11,6 @@ import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.os.Bundle;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Environment;
@@ -53,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("HandlerLeak")
     private Handler mainHandler = new Handler() {
         @Override
-        public void handleMessage(@NonNull Message mssg) {
+        public void handleMessage(Message mssg) {
             Log.d(TAG, "handleMessage: " + mssg.what);
             if (mssg.what == INTS.CLOSE_DLG) {
                 if (dialog != null) dialog.dismiss();

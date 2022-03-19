@@ -1,30 +1,25 @@
 package at.aau.moose_scroll.controller;
 
-import static at.aau.moose_scroll.data.Consts.STRINGS.BLOCK;
 import static at.aau.moose_scroll.data.Consts.STRINGS.END;
-import static at.aau.moose_scroll.data.Consts.STRINGS.EXP_ID;
+import static at.aau.moose_scroll.data.Consts.STRINGS.EXPID;
+import static at.aau.moose_scroll.data.Consts.STRINGS.GENINFO;
 import static at.aau.moose_scroll.data.Consts.STRINGS.SP;
-import static at.aau.moose_scroll.data.Consts.STRINGS.TECH;
-import static at.aau.moose_scroll.data.Consts.STRINGS.TRIAL;
-import static at.aau.moose_scroll.data.Consts.STRINGS.TSK;
 
 import android.annotation.SuppressLint;
 import android.os.Environment;
 import android.view.MotionEvent;
-
-import androidx.annotation.NonNull;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import at.aau.moose_scroll.data.Consts;
 import at.aau.moose_scroll.data.Memo;
+import at.aau.moose_scroll.experiment.Trial;
 import at.aau.moose_scroll.tools.Logs;
 
 import static android.view.MotionEvent.*;
-import static at.aau.moose_scroll.data.Consts.*;
+import static at.aau.moose_scroll.experiment.Experiment.*;
 
 public class Logger {
     private final static String NAME = "Logger/";
@@ -32,11 +27,15 @@ public class Logger {
     private static Logger self;
 
     private static String mLogDirectory; // Main folder for logs
+    private static String mPcLogDir; // Log dir for the ptc
 
     private String mMotionEventLogPath;
     private PrintWriter mMotionEventLogPW;
 
-    private GeneralInfo mGenInfo = new GeneralInfo();
+    private GeneralInfo mGenInfo;
+
+    private boolean mLogFilesOpen = false;
+    private boolean mReadyToLog = false;
 
     // -------------------------------------------------------------------------------------------
     public static Logger get() {
@@ -70,46 +69,69 @@ public class Logger {
      * @param memo Memo
      */
     public void setLogInfo(Memo memo) {
+        final String TAG = NAME + "setLogInfo";
+
+        Logs.d(TAG, memo.getMode());
         switch (memo.getMode()) {
-            case EXP_ID: {
-                logExperimentStart(memo.getValue1());
-            }
 
-            case TECH + "_" + TSK: {
-                mGenInfo.tech = TECHNIQUE.get(memo.getValue1Int());
-                mGenInfo.task = TASK.get(memo.getValue2Int());
-            }
+        case EXPID: {
+            logExperimentInfo(memo.getValue1Str(), memo.getValue2Str());
+            break;
+        }
 
-            case BLOCK + "_" + TRIAL: {
-                mGenInfo.blockNum = memo.getValue1Int();
-                mGenInfo.trialNum = memo.getValue2Int();
-            }
+        case GENINFO: {
+            closeLogs();
+            mGenInfo = new GeneralInfo(memo.getValue1Str());
+            mReadyToLog = true;
+            Logs.d(TAG, mGenInfo);
+            break;
+        }
 
-            case END: {
-                closeLogs();
-            }
+        case END: {
+            closeLogs();
+            mReadyToLog = false;
+            Logs.d(TAG, "Seriously?!!");
+            break;
+        }
 
         }
+
+        Logs.d(TAG, mReadyToLog);
     }
 
 
     /**
      * Log the start of an experiment
-     * @param expLogId String containing the experiment info
+     * @param pcLogId String containing id of the participant (e.g. P2)
+     * @param expLogId String containing the experiment info (e.g. P5_18-03-2022)
      */
-    public void logExperimentStart(String expLogId) {
+    public void logExperimentInfo(String pcLogId, String expLogId) {
         final String TAG = NAME + "logParticipant";
 
-        mMotionEventLogPath = mLogDirectory + "/" + expLogId + "_" + "LOG.txt";
+        mPcLogDir = mLogDirectory + "/" + pcLogId;
+        mMotionEventLogPath = mPcLogDir + "/" + expLogId + "_" + "MOEV.txt";
+        createLogFiles();
+    }
+
+    public void createLogFiles() {
+        final String TAG = NAME + "createLogFiles";
 
         try {
+            // Create a directory for the ptc
+            boolean res = createDir(mPcLogDir);
+
+            // Create the log files
             mMotionEventLogPW = new PrintWriter(new FileWriter(mMotionEventLogPath, false));
             mMotionEventLogPW.println(
                     GeneralInfo.getLogHeader() + SP + MotionEventInfo.getLogHeader());
             mMotionEventLogPW.flush();
+            mMotionEventLogPW.close();
 
+            mLogFilesOpen = false;
+
+            Logs.d(TAG, "log file created!");
         } catch (IOException e) {
-            Logs.d(TAG, "Error in creating participant file!");
+            Logs.d(TAG, "Error in exp. info logging!");
             e.printStackTrace();
         }
     }
@@ -119,17 +141,31 @@ public class Logger {
      * @param meventInfo MotionEventInfo
      */
     public void logMotionEventInfo(MotionEventInfo meventInfo) {
-        try {
-            if (mMotionEventLogPW == null) { // Open only if not opened before
-                mMotionEventLogPW = new PrintWriter(
-                        new FileWriter(mMotionEventLogPath, true));
+        final String TAG = NAME + "logMotionEventInfo";
+        Logs.d(TAG, "Ready?", mReadyToLog);
+        if (mReadyToLog) {
+            try {
+                if (new File(mMotionEventLogPath).isFile()) {
+
+                    if (!mLogFilesOpen) {
+                        final FileWriter logFW = new FileWriter(mMotionEventLogPath, true);
+                        mMotionEventLogPW = new PrintWriter(logFW);
+
+                        mLogFilesOpen = true;
+                    }
+
+                    mMotionEventLogPW.println(mGenInfo + SP + meventInfo);
+                    mMotionEventLogPW.flush();
+                    Logs.d(TAG, "Motion logged");
+
+                } else { // log file doesn't exist
+                    Logs.d(TAG, "File doesn't exist");
+                    createLogFiles();
+                }
+
+            } catch (NullPointerException | IOException e) {
+                e.printStackTrace();
             }
-
-            mMotionEventLogPW.println(mGenInfo + SP + meventInfo);
-            mMotionEventLogPW.flush();
-
-        } catch (NullPointerException | IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -137,7 +173,10 @@ public class Logger {
      * Close all the log files
      */
     public void closeLogs() {
+        final String TAG = NAME + "closeLogs";
+        Logs.d(TAG, mMotionEventLogPW);
         if (mMotionEventLogPW != null) mMotionEventLogPW.close();
+        mLogFilesOpen = false;
     }
 
     /**
@@ -182,25 +221,54 @@ public class Logger {
     // -------------------------------------------------------------------------------------------
     // General info
     public static class GeneralInfo {
-        public Consts.TECHNIQUE tech;
-        public Consts.TASK task;
+        public int session;
+        public int part;
+        public TECHNIQUE tech;
         public int blockNum;
         public int trialNum;
+        public Trial trial = new Trial();
 
-        public static String getLogHeader() {
-            return "technique" + SP +
-                    "task" + SP +
-                    "block_num" + SP +
-                    "trial_num" + SP;
+        /**
+         * Create the object from a serialized String (exact output of toString())
+         * @param szdStr Serialized String
+         */
+        public GeneralInfo(String szdStr) {
+            String[] splitStr = szdStr.split(SP);
+            if (splitStr.length == 10) {
+                session = Integer.parseInt(splitStr[0]);
+                part = Integer.parseInt(splitStr[1]);
+                tech = TECHNIQUE.valueOf(splitStr[2]);
+                blockNum = Integer.parseInt(splitStr[3]);
+                trialNum = Integer.parseInt(splitStr[4]);
+
+                trial = new Trial();
+                trial.task = TASK.valueOf(splitStr[5]);
+                trial.direction = DIRECTION.valueOf(splitStr[6]);
+                trial.vtDist = Integer.parseInt(splitStr[7]);
+                trial.tdDist = Integer.parseInt(splitStr[8]);
+                trial.frame = Integer.parseInt(splitStr[9]);
+            } else {
+                Logs.e("GeneralInfo", "Num. of parts not 10");
+            }
         }
 
-        @NonNull
+        public static String getLogHeader() {
+            return "session" + SP +
+                    "part" + SP +
+                    "technique" + SP +
+                    "block_num" + SP +
+                    "trial_num" + SP +
+                    Trial.getLogHeader();
+        }
+
         @Override
         public String toString() {
-            return tech + SP +
-                    task + SP +
+            return session + SP +
+                    part + SP +
+                    tech + SP +
                     blockNum + SP +
-                    trialNum + SP;
+                    trialNum + SP +
+                    trial.toLogString();
         }
     }
 
@@ -285,7 +353,6 @@ public class Logger {
                     "finger_5_y";
         }
 
-        @NonNull
         @Override
         public String toString() {
             StringBuilder result = new StringBuilder();

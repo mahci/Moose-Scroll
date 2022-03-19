@@ -5,8 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-
 import at.aau.moose_scroll.R;
 import at.aau.moose_scroll.views.MainActivity;
 
@@ -18,7 +16,7 @@ public class AdminManager extends DeviceAdminReceiver {
     }
 
     @Override
-    public void onReceive(@NonNull Context context, @NonNull Intent intent) {
+    public void onReceive(Context context, Intent intent) {
         if (intent.getAction().equals(ACTION_DEVICE_ADMIN_DISABLE_REQUESTED)) {
             abortBroadcast();
         }

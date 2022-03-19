@@ -7,8 +7,6 @@ import static android.view.MotionEvent.ACTION_POINTER_UP;
 import static android.view.MotionEvent.ACTION_UP;
 import static android.view.MotionEvent.INVALID_POINTER_ID;
 
-import static at.aau.moose_scroll.data.Consts.TECHNIQUE.*;
-
 import android.annotation.SuppressLint;
 import android.graphics.PointF;
 import android.util.Log;
@@ -21,6 +19,7 @@ import at.aau.moose_scroll.data.Memo;
 import at.aau.moose_scroll.tools.Logs;
 
 import static at.aau.moose_scroll.controller.Logger.*;
+import static at.aau.moose_scroll.experiment.Experiment.*;
 
 public class Actioner {
     private final String NAME = "Actioner/";
@@ -29,7 +28,7 @@ public class Actioner {
     private static Actioner instance; // Singelton instance
 
     // Mode of scrolling
-    private TECHNIQUE mActiveTechnique = FLICK;
+    private TECHNIQUE mActiveTechnique = TECHNIQUE.FLICK;
 
     private final int PPI = 312; // For calculating movement in mm
 
@@ -50,7 +49,7 @@ public class Actioner {
     private long mTimeLastMoved;
     private boolean mContinueScroll = false;
     private double THRSH_MM = 1.0; // Threshold to ignore less than
-    private boolean mInsideScrolling = false; // Scrolling without syncing
+    private boolean mIsAutoScrolling = false; // Scrolling to fix scroll position
 
     // Config
     private int mDragSensitivity = 2; // Count every n ACTION_MOVEs
@@ -58,10 +57,34 @@ public class Actioner {
     private double mRBGain = 1.5; // Gain factor for rate-based
     private int mRBSensititivity = 1; // Count every n ACTION_MOVEs (rate-based)
     private int mRBDenom = 50; // Denominator in RB's speed formula
-    private double mFlickCoef = 0.5; // dX, dY returned from webView * coef -> Desktop
+    private double mFlickGain = 0.35; // dX, dY returned from webView * coef -> Desktop
 
     // Views
     private WebView mWebView;
+
+    // -------------------------------------------------------------------------------
+
+    /**
+     * Class for managing scroll in webView
+     */
+    private class FlickWebViewScrollListener implements View.OnScrollChangeListener {
+        final String TAG = NAME + "flickWebViewScrollListener";
+
+        @Override
+        public void onScrollChange(View v,
+                                   int scrollX, int scrollY,
+                                   int oldScrollX, int oldScrollY) {
+            if (oldScrollY != scrollY) Log.d(TAG, "Y= " + oldScrollY + " -> " + scrollY);
+            if (oldScrollX != scrollX) Log.d(TAG, "X= " + oldScrollX + " -> " + scrollX);
+
+            if (!mIsAutoScrolling) { // If scrolling by finger
+                final double dY = (scrollY - oldScrollY) * mFlickGain * (-1);
+                final double dX = (scrollX - oldScrollX) * mFlickGain * (-1);
+
+                Networker.get().sendMemo(new Memo(STRINGS.SCROLL, TECHNIQUE.FLICK, dY, dX));
+            }
+        }
+    }
 
     // -------------------------------------------------------------------------------
 
@@ -87,33 +110,6 @@ public class Actioner {
             break;
         }
 
-//        case STRINGS.SENSITIVITY: {
-//            if (mActiveTechnique.equals(TECHNIQUE.DRAG))
-//                mDragSensitivity = memo.getValue1Double();
-//            if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED))
-//                mRBSensititivity = memo.getValue1Double();
-//
-//            break;
-//        }
-//
-//        case STRINGS.GAIN: {
-//            if (mActiveTechnique.equals(TECHNIQUE.DRAG))
-//                mDragGain = memo.getValue1Double();
-//            if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED))
-//                mRBGain = memo.getValue1Double();
-//
-//            break;
-//        }
-
-        case STRINGS.DENOM: {
-            mRBDenom = memo.getValue1Int();
-            break;
-        }
-
-        case STRINGS.COEF: {
-            mFlickCoef = memo.getValue1Double();
-            break;
-        }
         }
     }
 
@@ -133,7 +129,7 @@ public class Actioner {
 
         // Scrolling listners
         mWebView.setOnTouchListener((v, event) -> false);
-        mWebView.setOnScrollChangeListener(new flickWebViewScrollListener());
+        mWebView.setOnScrollChangeListener(new FlickWebViewScrollListener());
     }
 
     /**
@@ -142,9 +138,9 @@ public class Actioner {
      * @param y Y position to scroll to
      */
     public void webViewManualScrollTo(int x, int y) {
-        mInsideScrolling = true;
+        mIsAutoScrolling = true;
         mWebView.scrollTo(x, y);
-        mInsideScrolling = false;
+        mIsAutoScrolling = false;
     }
 
     /**
@@ -166,7 +162,7 @@ public class Actioner {
             mNumMovePoints = 1;
 
             // Flick ----------------------------------------------------
-            if (mActiveTechnique.equals(FLICK)) {
+            if (mActiveTechnique.equals(TECHNIQUE.FLICK)) {
                 mContinueScroll = true;
                 mWebView.dispatchTouchEvent(event);
 
@@ -189,8 +185,8 @@ public class Actioner {
                 final float y = event.getY(activeIndex);
                 mLastTouchPoint = new PointF(x, y);
 
-                // Flick ---------------------- kmnb /.وؤسیسشطشس ز ------------------------------
-                if (mActiveTechnique.equals(FLICK)) {
+                // Flick ----------------------------------------------------
+                if (mActiveTechnique.equals(TECHNIQUE.FLICK)) {
                     mContinueScroll = true;
 
                     final MotionEvent newEvent = getNewEvent(event);
@@ -211,7 +207,7 @@ public class Actioner {
                     mActivePointerId = event.getPointerId(pointerIndex);
 
                     // Flick ----------------------------------------------------
-                    if (mActiveTechnique.equals(FLICK)) {
+                    if (mActiveTechnique.equals(TECHNIQUE.FLICK)) {
                         mContinueScroll = true;
 
                         final MotionEvent newEvent = getNewEvent(event);
@@ -234,6 +230,19 @@ public class Actioner {
 
             final float x = event.getX(activeIndex);
             final float y = event.getY(activeIndex);
+
+            // FLICK ----------------------------------------------------
+            if (mActiveTechnique.equals(TECHNIQUE.FLICK)) {
+                if (mContinueScroll) {
+                    final MotionEvent newEvent = getNewEvent(event);
+                    mWebView.dispatchTouchEvent(newEvent);
+
+                    // Log the event
+                    Logger.get().logMotionEventInfo(new MotionEventInfo(event));
+                }
+
+            }
+            //-----------------------------------------------------------
 
             // DRAG ----------------------------------------------------
             if (mActiveTechnique.equals(TECHNIQUE.DRAG)) {
@@ -278,7 +287,6 @@ public class Actioner {
                     final double vtScrollMM = dYMM * dirDY;
                     final double hzScrollMM = dXMM * dirDX;
 
-                    Logs.d(TAG, "RATE-BASED", vtScrollMM, hzScrollMM);
                     // Only send amounts > 1 mm ( > ~ 1.2 px)
                     if (dYAbsMM > THRSH_MM || dXAbsMM > THRSH_MM) {
                         Memo memo = new Memo(STRINGS.SCROLL,
@@ -288,20 +296,6 @@ public class Actioner {
                     }
 
                     // Last point shouldn't change!
-                }
-
-            }
-            //-----------------------------------------------------------
-
-            // FLICK ----------------------------------------------------
-            if (mActiveTechnique.equals(FLICK)) {
-                if (mContinueScroll) {
-                    final MotionEvent newEvent = getNewEvent(event);
-                    Logs.d(TAG, newEvent);
-                    mWebView.dispatchTouchEvent(newEvent);
-
-                    // Log the event
-                    Logger.get().logMotionEventInfo(new MotionEventInfo(event));
                 }
 
             }
@@ -328,10 +322,10 @@ public class Actioner {
 //                mActivePointerId = event.getPointerId(newPointerIndex);
 
                 // RATE-BASED ----------------------------------------------------------
-                if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED)) stopScroll();
+//                if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED)) stopScroll();
 
                 // FLICK ---------------------------------------------------------------
-                if (mActiveTechnique.equals(FLICK)) {
+                if (mActiveTechnique.equals(TECHNIQUE.FLICK)) {
                     final MotionEvent newEvent = getNewEvent(event);
                     mWebView.dispatchTouchEvent(newEvent);
 
@@ -349,9 +343,10 @@ public class Actioner {
         case MotionEvent.ACTION_UP: {
             mActivePointerId = INVALID_POINTER_ID;
             // RATE-BASED ----------------------------------------------------------
-            if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED)) stopScroll();
+//            if (mActiveTechnique.equals(TECHNIQUE.RATE_BASED)) stopScroll();
+
             // FLICK ---------------------------------------------------------------
-            if (mActiveTechnique.equals(FLICK)) {
+            if (mActiveTechnique.equals(TECHNIQUE.FLICK)) {
                 mWebView.dispatchTouchEvent(event);
                 mContinueScroll = false;
 
@@ -362,27 +357,6 @@ public class Actioner {
             break;
         }
 
-        }
-    }
-
-    /******
-     * Class for managing scroll in webView
-     */
-    private class flickWebViewScrollListener implements View.OnScrollChangeListener {
-        final String TAG = NAME + "flickWebViewScrollListener";
-
-        @Override
-        public void onScrollChange(View v,
-                                   int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
-            if (oldScrollY != scrollY) Log.d(TAG, "Y= " + oldScrollY + " -> " + scrollY);
-            if (oldScrollX != scrollX) Log.d(TAG, "X= " + oldScrollX + " -> " + scrollX);
-
-            if (!mInsideScrolling) {
-                final double dY = (scrollY - oldScrollY) * mFlickCoef * (-1);
-                final double dX = (scrollX - oldScrollX) * mFlickCoef * (-1);
-
-                Networker.get().sendMemo(new Memo(STRINGS.SCROLL, FLICK.toString(), dY, dX));
-            }
         }
     }
 
@@ -433,23 +407,12 @@ public class Actioner {
         }
     }
 
-    private void resetFlick() {
-        mLastVelocities = new double[]{0.0, 0.0, 0.0};
-        mTotalDistanceX = 0;
-        mTotalDistanceY = 0;
-        mTimeLastMoved = System.currentTimeMillis();
-        if (mAutoscroll) {
-            stopScroll();
-            mAutoscroll = false;
-        }
-    }
-
     /**
      * Stop any scrolling (no matter the technique)
      */
-    private void stopScroll() {
-        Networker.get().sendMemo(Memo.RB_STOP_MEMO);
-    }
+//    private void stopScroll() {
+//        Networker.get().sendMemo(Memo.RB_STOP_MEMO);
+//    }
 
     /**
      * Check if a pointer is leftmost
@@ -470,7 +433,6 @@ public class Actioner {
         String TAG = NAME + "findLeftMostIndex";
 
         int nPointers = me.getPointerCount();
-        Logs.d(TAG, "nPointers", me.getPointerCount());
         if (nPointers == 0) return -1;
         if (nPointers == 1) return 0;
 

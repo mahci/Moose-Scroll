@@ -23,7 +23,6 @@ import java.util.concurrent.Executors;
 
 import at.aau.moose_scroll.data.Memo;
 import at.aau.moose_scroll.tools.Logs;
-import io.reactivex.rxjava3.core.Observable;
 
 @SuppressWarnings("ALL")
 public class Networker {
@@ -38,14 +37,15 @@ public class Networker {
     private static Networker instance;
 
     private Socket mSocket;
-    private Observable<Object> mIncomningObservable; // Observing the incoming mssg.
+//    private Observable<Object> mIncomningObservable; // Observing the incoming mssg.
     private ExecutorService mExecutor;
     private PrintWriter mOutPW;
     private BufferedReader mInBR;
     private Vibrator mVibrator;
     private Handler mMainThreadHandler;
 
-    private Memo mKeepAliveMssg = new Memo(CONNECTION, KEEP_ALIVE, "-", "-");
+    private Memo KEEP_ALIVE_MEMO = new Memo(CONNECTION, KEEP_ALIVE, "-", "-");
+    private Memo INTRO_MEMO = new Memo(CONNECTION, INTRO, MOOSE, "-");
 
     // -------------------------------------------------------------------------------
 
@@ -74,7 +74,7 @@ public class Networker {
                             new OutputStreamWriter(mSocket.getOutputStream())),true);
 
                     // Send intro
-                    sendMemo(new Memo(CONNECTION, INTRO, MOOSE, "-"));
+                    sendMemo(INTRO_MEMO);
 
                     // Start Keep Alive timer
                     keepAlive();
@@ -131,7 +131,7 @@ public class Networker {
                 try {
                     if ((mssg = mInBR.readLine()) != null) {
                         Log.d(TAG, "Message: " + mssg);
-                        Memo memo = Memo.valueOf(mssg);
+                        Memo memo = Memo.fromString(mssg);
                         Logs.d(TAG, "Action: " + memo.getAction());
                         switch (memo.getAction()) {
                             case CONFIG: {
@@ -142,7 +142,7 @@ public class Networker {
                             case LOG: {
                                 Logger.get().setLogInfo(memo);
 
-                                // Reset webView position
+                                // Reset webView position after each log (= trial)
                                 Actioner.get().webViewManualScrollTo(100000, 100000);
                             }
                         }
@@ -207,7 +207,7 @@ public class Networker {
         keepAliveTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                sendMemo(mKeepAliveMssg);
+                sendMemo(KEEP_ALIVE_MEMO);
             }
         }, 0, 60 * 1000);
     }
