@@ -106,11 +106,13 @@ public class Actioner {
         Logs.d(TAG, memo);
         switch (memo.getMode()) {
         case STRINGS.TECH: {
-            mActiveTechnique = TECHNIQUE.get(memo.getValue1Int());
+            mActiveTechnique = TECHNIQUE.valueOf(memo.getValue1Str());
             break;
         }
 
         }
+
+        Logs.d(TAG, mActiveTechnique);
     }
 
     /**

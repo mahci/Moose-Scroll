@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 
 import at.aau.moose_scroll.data.Memo;
 import at.aau.moose_scroll.tools.Logs;
+import at.aau.moose_scroll.views.MainActivity;
 
 @SuppressWarnings("ALL")
 public class Networker {
@@ -33,8 +34,10 @@ public class Networker {
     private final int DESKTOP_PORT = 8000;
     private final long SUCCESS_VIBRATE_DUR = 500; // ms
     private final long CONN_THREAD_SLEEP_DUR = 2 * 1000; // ms
+    private final int CONN_TRIES = 30;
 
     private static Networker instance;
+    private int nConnTries = 0;
 
     private Socket mSocket;
 //    private Observable<Object> mIncomningObservable; // Observing the incoming mssg.
@@ -83,11 +86,16 @@ public class Networker {
                     mExecutor.execute(new InRunnable());
 
                 } catch (ConnectException e) { // Server offline
-                    Log.d(TAG, "Server not responding. Trying again in 2 sec.");
-                    try {
-                        Thread.sleep(CONN_THREAD_SLEEP_DUR);
-                    } catch (InterruptedException ie) {
-                        ie.printStackTrace();
+                    nConnTries++;
+                    if (nConnTries < CONN_TRIES) {
+                        Log.d(TAG, "Server not responding. Trying again in 2 sec.");
+                        try {
+                            Thread.sleep(CONN_THREAD_SLEEP_DUR);
+                        } catch (InterruptedException ie) {
+                            ie.printStackTrace();
+                        }
+                    } else {
+                        System.exit(0);
                     }
                     e.printStackTrace();
                 } catch (IOException e) {

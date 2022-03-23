@@ -121,7 +121,7 @@ public class Logger {
             boolean res = createDir(mPcLogDir);
 
             // Create the log files
-            mMotionEventLogPW = new PrintWriter(new FileWriter(mMotionEventLogPath, false));
+            mMotionEventLogPW = new PrintWriter(new FileWriter(mMotionEventLogPath, true));
             mMotionEventLogPW.println(
                     GeneralInfo.getLogHeader() + SP + MotionEventInfo.getLogHeader());
             mMotionEventLogPW.flush();
